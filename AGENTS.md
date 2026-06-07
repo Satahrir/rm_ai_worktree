@@ -187,6 +187,14 @@ Each agent must stay in its assigned area.
 - `tests/fixtures/uvm_table_print/`
 - `docs/interface/`
 
+### UVM table JSON agent may modify
+
+- `utils/`
+- `schema_defs/uvm_table/`
+- `tests/test_utils/`
+- `tests/fixtures/uvm_table_print/`
+- `docs/interface/`
+
 ### Workflow coordinator may modify
 
 - `AGENTS.md`

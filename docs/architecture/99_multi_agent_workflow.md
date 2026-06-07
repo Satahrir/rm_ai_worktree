@@ -22,6 +22,7 @@ rm_ref_algo_demo   codex/algo-demo
 rm_ref_tests       codex/tests
 rm_ref_review      codex/review
 rm_ref_uvm_parser  codex/uvm-parser
+rm_ref_uvm_json    codex/uvm-json
 ```
 
 Do not run multiple agents in one worktree. Do not perform feature

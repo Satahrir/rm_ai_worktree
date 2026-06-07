@@ -4,16 +4,16 @@
 
 ## Assignment
 
-- Task: `uvm-table-parser`
-- Status: `MERGED`
-- Role: `uvm_table_parser`
-- Branch: `codex/uvm-parser`
-- Worktree: `rm_ref_uvm_parser`
-- Prompt: `agents/uvm_table_parser_agent_prompt.md`
+- Task: `uvm-table-json`
+- Status: `READY`
+- Role: `uvm_table_json`
+- Branch: `codex/uvm-json`
+- Worktree: `rm_ref_uvm_json`
+- Prompt: `agents/uvm_table_json_agent_prompt.md`
 
 ## Goal
 
-Implement a Python 3.6-compatible hierarchical UVM table printer parser utility.
+Add deterministic hierarchical JSON output to the existing UVM table-printer parser.
 
 ## Allowed Paths
 
@@ -39,5 +39,6 @@ Implement a Python 3.6-compatible hierarchical UVM table printer parser utility.
 
 ## Notes
 
-- Create the assigned branch and worktree before implementation.
-- docs/interface/uvm_table_print_parser.md is an output of the task, not a startup prerequisite.
+- Implement generic hierarchical JSON before RM-specific mapping or adaptation.
+- Keep the existing Python output as the default and preserve backward compatibility.
+- Do not reuse the completed rm_ref_uvm_parser worktree.
