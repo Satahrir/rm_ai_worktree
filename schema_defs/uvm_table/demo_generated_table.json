@@ -1,0 +1,230 @@
+{
+  "format": "uvm_table_printer/v1",
+  "roots": [
+    {
+      "name": "packet_param",
+      "type": "packet_param",
+      "size": null,
+      "children": [
+        {
+          "name": "header0",
+          "type": "header_t",
+          "size": null,
+          "children": [
+            {
+              "name": "word0",
+              "type": "integral",
+              "size": 32,
+              "value": 0
+            },
+            {
+              "name": "packet_type",
+              "type": "integral",
+              "size": 4,
+              "value": 0
+            },
+            {
+              "name": "fpga_link_id",
+              "type": "integral",
+              "size": 4,
+              "value": 0
+            },
+            {
+              "name": "frame_num",
+              "type": "integral",
+              "size": 16,
+              "value": 0
+            },
+            {
+              "name": "slot_num",
+              "type": "integral",
+              "size": 8,
+              "value": 0
+            },
+            {
+              "name": "word1",
+              "type": "integral",
+              "size": 32,
+              "value": 0
+            },
+            {
+              "name": "StartSymbol",
+              "type": "integral",
+              "size": 4,
+              "value": 0
+            },
+            {
+              "name": "EndSymbol",
+              "type": "integral",
+              "size": 4,
+              "value": 0
+            },
+            {
+              "name": "RSV_word1",
+              "type": "integral",
+              "size": 24,
+              "value": 0
+            },
+            {
+              "name": "word2",
+              "type": "integral",
+              "size": 32,
+              "value": 0
+            },
+            {
+              "name": "Pwr_beta0",
+              "type": "integral",
+              "size": 8,
+              "value": 0
+            },
+            {
+              "name": "Pwr_beta1",
+              "type": "integral",
+              "size": 8,
+              "value": 0
+            },
+            {
+              "name": "Pwr_beta2",
+              "type": "integral",
+              "size": 8,
+              "value": 0
+            },
+            {
+              "name": "Pwr_beta3",
+              "type": "integral",
+              "size": 8,
+              "value": 0
+            },
+            {
+              "name": "word3",
+              "type": "integral",
+              "size": 32,
+              "value": 0
+            },
+            {
+              "name": "RSV_word3",
+              "type": "integral",
+              "size": 32,
+              "value": 0
+            }
+          ]
+        },
+        {
+          "name": "header1",
+          "type": "header_t",
+          "size": null,
+          "children": [
+            {
+              "name": "word0",
+              "type": "integral",
+              "size": 32,
+              "value": 0
+            },
+            {
+              "name": "packet_type",
+              "type": "integral",
+              "size": 4,
+              "value": 0
+            },
+            {
+              "name": "fpga_link_id",
+              "type": "integral",
+              "size": 4,
+              "value": 0
+            },
+            {
+              "name": "frame_num",
+              "type": "integral",
+              "size": 16,
+              "value": 0
+            },
+            {
+              "name": "slot_num",
+              "type": "integral",
+              "size": 8,
+              "value": 0
+            },
+            {
+              "name": "word1",
+              "type": "integral",
+              "size": 32,
+              "value": 0
+            },
+            {
+              "name": "StartSymbol",
+              "type": "integral",
+              "size": 4,
+              "value": 0
+            },
+            {
+              "name": "EndSymbol",
+              "type": "integral",
+              "size": 4,
+              "value": 0
+            },
+            {
+              "name": "RSV_word1",
+              "type": "integral",
+              "size": 24,
+              "value": 0
+            },
+            {
+              "name": "word2",
+              "type": "integral",
+              "size": 32,
+              "value": 0
+            },
+            {
+              "name": "Pwr_beta0",
+              "type": "integral",
+              "size": 8,
+              "value": 0
+            },
+            {
+              "name": "Pwr_beta1",
+              "type": "integral",
+              "size": 8,
+              "value": 0
+            },
+            {
+              "name": "Pwr_beta2",
+              "type": "integral",
+              "size": 8,
+              "value": 0
+            },
+            {
+              "name": "Pwr_beta3",
+              "type": "integral",
+              "size": 8,
+              "value": 0
+            },
+            {
+              "name": "word3",
+              "type": "integral",
+              "size": 32,
+              "value": 0
+            },
+            {
+              "name": "RSV_word3",
+              "type": "integral",
+              "size": 32,
+              "value": 0
+            }
+          ]
+        },
+        {
+          "name": "word4",
+          "type": "integral",
+          "size": 32,
+          "value": 0
+        },
+        {
+          "name": "Payload",
+          "type": "da(integral)",
+          "size": null,
+          "value": "-"
+        }
+      ]
+    }
+  ]
+}

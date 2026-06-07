@@ -1,17 +1,22 @@
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
 
+import utils.parse_uvm_table_print as parser_module
 from utils.parse_uvm_table_print import (
     GENERATED_HEADER,
+    JSON_FORMAT,
     UvmTableParserError,
     apply_mapping,
     convert_value,
     load_mapping_file,
     main,
     parse_uvm_table_text,
+    parse_uvm_table_tree,
     render_python_para_get,
+    render_uvm_table_json,
 )
 
 
@@ -26,6 +31,9 @@ FIXTURE_PATH = (
 MAPPING_PATH = REPO_ROOT / "schema_defs" / "uvm_table" / "demo_mapping.py"
 GENERATED_DEMO_PATH = (
     REPO_ROOT / "schema_defs" / "uvm_table" / "demo_generated_para.py"
+)
+GENERATED_JSON_DEMO_PATH = (
+    REPO_ROOT / "schema_defs" / "uvm_table" / "demo_generated_table.json"
 )
 
 
@@ -46,6 +54,96 @@ def test_parse_hierarchical_paths_from_fixture():
     assert parsed["packet_param.header0.word3"] == 0
     assert parsed["packet_param.word4"] == 0
     assert "packet_param.Payload" not in parsed
+
+
+def test_parse_tree_single_leaf_preserves_type_size_and_value():
+    text = (
+        "Name                         Type                Size    Value\n"
+        "field_a                      integral            32      10\n"
+    )
+
+    assert parse_uvm_table_tree(text) == [
+        {
+            "name": "field_a",
+            "type": "integral",
+            "size": 32,
+            "value": 10,
+        }
+    ]
+
+
+def test_parse_tree_builds_nested_object_reference_containers():
+    text = (
+        "Name                         Type                Size    Value\n"
+        "packet                       packet_t            -       @00000001\n"
+        "  header                     header_t            -       @00000002\n"
+        "    packet_type              integral            4       'h3\n"
+    )
+
+    roots = parse_uvm_table_tree(text)
+
+    assert roots == [
+        {
+            "name": "packet",
+            "type": "packet_t",
+            "size": None,
+            "children": [
+                {
+                    "name": "header",
+                    "type": "header_t",
+                    "size": None,
+                    "children": [
+                        {
+                            "name": "packet_type",
+                            "type": "integral",
+                            "size": 4,
+                            "value": 3,
+                        }
+                    ],
+                }
+            ],
+        }
+    ]
+    assert "value" not in roots[0]
+    assert "value" not in roots[0]["children"][0]
+
+
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        ("10", 10),
+        ("0x10", 16),
+        ("0b1010", 10),
+        ("-7", -7),
+        ("8'shff", -1),
+        ('"hello"', "hello"),
+    ],
+)
+def test_parse_tree_reuses_value_conversion(raw_value, expected):
+    text = (
+        "Name                         Type                Size    Value\n"
+        "field_a                      integral            32      {0}\n".format(
+            raw_value
+        )
+    )
+
+    assert parse_uvm_table_tree(text)[0]["value"] == expected
+
+
+def test_object_reference_without_children_is_still_a_container():
+    text = (
+        "Name                         Type                Size    Value\n"
+        "empty_object                 object_t            -       @00000001\n"
+    )
+
+    assert parse_uvm_table_tree(text) == [
+        {
+            "name": "empty_object",
+            "type": "object_t",
+            "size": None,
+            "children": [],
+        }
+    ]
 
 
 def test_ignore_table_border_lines():
@@ -154,6 +252,39 @@ def test_render_empty_python_para_get_uses_pass():
     assert render_python_para_get([]).endswith("def para_get(parse):\n    pass\n")
 
 
+def test_render_uvm_table_json_is_deterministic_and_round_trips():
+    roots = [
+        {
+            "name": "field_a",
+            "type": "integral",
+            "size": 32,
+            "value": 10,
+        }
+    ]
+
+    first = render_uvm_table_json(roots)
+    second = render_uvm_table_json(roots)
+
+    assert first == second
+    assert first.endswith("\n")
+    assert not first.endswith("\n\n")
+    assert first.startswith('{\n  "format": "uvm_table_printer/v1",\n')
+    assert json.loads(first) == {"format": JSON_FORMAT, "roots": roots}
+
+
+def test_cli_argument_error_prints_complete_help(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        main([])
+
+    assert exc_info.value.code == 2
+    error_output = capsys.readouterr().err
+    assert "usage: " in error_output
+    assert "Python output (default):" in error_output
+    assert "Hierarchical JSON output:" in error_output
+    assert "--mapping and --unmapped apply only to Python output." in error_output
+    assert "the following arguments are required: --input, --output" in error_output
+
+
 def test_load_mapping_file():
     name_map, keep_unmapped = load_mapping_file(str(MAPPING_PATH))
 
@@ -190,6 +321,51 @@ def test_cli_generates_importable_output_file(tmp_path):
     assert target.word4 == 0
 
 
+def test_cli_default_format_preserves_python_output(tmp_path):
+    default_output = tmp_path / "default_para.py"
+    explicit_output = tmp_path / "explicit_para.py"
+    common_args = [
+        "--input",
+        str(FIXTURE_PATH),
+        "--mapping",
+        str(MAPPING_PATH),
+    ]
+
+    assert main(common_args + ["--output", str(default_output)]) == 0
+    assert (
+        main(
+            common_args
+            + ["--format", "python", "--output", str(explicit_output)]
+        )
+        == 0
+    )
+    assert default_output.read_bytes() == explicit_output.read_bytes()
+
+
+def test_cli_generates_json_output(tmp_path):
+    output_path = tmp_path / "generated_table.json"
+
+    result = main(
+        [
+            "--input",
+            str(FIXTURE_PATH),
+            "--format",
+            "json",
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert result == 0
+    generated = output_path.read_text(encoding="utf-8")
+    document = json.loads(generated)
+    assert document["format"] == JSON_FORMAT
+    assert document["roots"][0]["name"] == "packet_param"
+    assert document["roots"][0]["children"][0]["name"] == "header0"
+    assert generated.endswith("\n")
+    assert not generated.endswith("\n\n")
+
+
 def test_committed_demo_output_matches_current_generator():
     parsed_items = parse_uvm_table_text(FIXTURE_PATH.read_text(encoding="utf-8"))
     name_map, keep_unmapped = load_mapping_file(str(MAPPING_PATH))
@@ -197,6 +373,14 @@ def test_committed_demo_output_matches_current_generator():
 
     assert GENERATED_DEMO_PATH.read_text(encoding="utf-8") == (
         render_python_para_get(mapped_items)
+    )
+
+
+def test_committed_json_demo_matches_current_generator():
+    roots = parse_uvm_table_tree(FIXTURE_PATH.read_text(encoding="utf-8"))
+
+    assert GENERATED_JSON_DEMO_PATH.read_text(encoding="utf-8") == (
+        render_uvm_table_json(roots)
     )
 
 
@@ -215,3 +399,71 @@ def test_cli_does_not_write_output_for_duplicate_names(tmp_path, capsys):
     assert result == 1
     assert not output_path.exists()
     assert "duplicate RM parameter name" in capsys.readouterr().err
+
+
+def test_json_cli_rejects_empty_input_without_output(tmp_path, capsys):
+    input_path = tmp_path / "empty.txt"
+    output_path = tmp_path / "generated_table.json"
+    input_path.write_text("UVM_INFO no table here\n", encoding="utf-8")
+
+    result = main(
+        [
+            "--input",
+            str(input_path),
+            "--format",
+            "json",
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert result == 1
+    assert not output_path.exists()
+    assert "no supported table nodes" in capsys.readouterr().err
+
+
+def test_json_cli_rejects_python_mapping_options(tmp_path, capsys):
+    output_path = tmp_path / "generated_table.json"
+
+    result = main(
+        [
+            "--input",
+            str(FIXTURE_PATH),
+            "--format",
+            "json",
+            "--mapping",
+            str(MAPPING_PATH),
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert result == 1
+    assert not output_path.exists()
+    assert "only valid with --format python" in capsys.readouterr().err
+
+
+def test_cli_removes_temporary_output_when_atomic_replace_fails(
+    tmp_path, capsys, monkeypatch
+):
+    output_path = tmp_path / "generated_table.json"
+
+    def fail_replace(_source, _destination):
+        raise OSError("replace failed")
+
+    monkeypatch.setattr(parser_module.os, "replace", fail_replace)
+    result = main(
+        [
+            "--input",
+            str(FIXTURE_PATH),
+            "--format",
+            "json",
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert result == 1
+    assert not output_path.exists()
+    assert list(tmp_path.glob(".uvm_table_*.tmp")) == []
+    assert "replace failed" in capsys.readouterr().err
