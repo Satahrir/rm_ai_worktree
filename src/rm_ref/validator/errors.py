@@ -1,0 +1,2 @@
+class ValidationSetupError(Exception):
+    pass
