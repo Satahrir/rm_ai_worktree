@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `uvm-table-json`
-- Status: `READY`
+- Status: `MERGED`
 - Role: `uvm_table_json`
 - Branch: `codex/uvm-json`
 - Worktree: `rm_ref_uvm_json`

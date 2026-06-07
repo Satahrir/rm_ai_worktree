@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "uvm-table-json",
-    "status": "READY",
+    "status": "MERGED",
     "goal": "Add deterministic hierarchical JSON output to the existing UVM table-printer parser.",
     "role": "uvm_table_json",
     "branch": "codex/uvm-json",

@@ -70,3 +70,26 @@ Result:
 
 - task status set to `MERGED`
 - follow-up JSON bundle work remains a separate task and branch
+
+------
+
+## 2026-06-08
+
+### UVM Table JSON Integration
+
+Completed:
+
+- merged `codex/uvm-json` into `main` as `de17696`
+- added deterministic hierarchical JSON output
+- preserved existing Python output compatibility
+- verified CLI help and Python 3.6-compatible syntax
+
+Tests:
+
+- `python -m pytest -q tests/test_utils`: 41 passed
+- `python -m pytest -q`: 94 passed
+
+Result:
+
+- task status set to `MERGED`
+- generic JSON output is available without RM-specific adaptation
