@@ -1,3 +1,5 @@
+import copy
+
 from rm_ref.core.algorithm import Algorithm
 from rm_ref.core.config import CellConfig, PacketConfig, TestcaseConfig
 from rm_ref.core.runner import run_config
@@ -10,14 +12,20 @@ class EchoAlgorithm(Algorithm):
         cell_ctx.push_output("sample_count", len(samples))
 
 
-class WarningAlgorithm(Algorithm):
+class WarningAlgorithm(EchoAlgorithm):
     def execute_cell(self, cell_ctx):
+        EchoAlgorithm.execute_cell(self, cell_ctx)
         cell_ctx.warn("SHORT_INPUT", "input is short", minimum=2)
 
 
 class ErrorAlgorithm(Algorithm):
     def execute_cell(self, cell_ctx):
-        cell_ctx.error("BAD_INPUT", "input is invalid", value=-1)
+        cell_ctx.error(
+            "BAD_INPUT",
+            "input is invalid",
+            field_name="samples",
+            value=-1,
+        )
 
 
 class FailingAlgorithm(Algorithm):
@@ -27,12 +35,18 @@ class FailingAlgorithm(Algorithm):
 
 def _packet(samples, cell_index=0):
     return PacketConfig(
+        parameters={"packet_mode": "test"},
         input_pkt_by_cc={cell_index: samples},
-        cells=[CellConfig(cell_index=cell_index)],
+        cells=[
+            CellConfig(
+                cell_index=cell_index,
+                parameters={"enabled": True},
+            )
+        ],
     )
 
 
-def test_runner_executes_single_packet_single_cell():
+def test_runner_executes_single_packet_single_cell_and_propagates_output():
     cfg = TestcaseConfig(case_name="echo", packets=[_packet([1, 2, 3])])
 
     result = run_config(cfg, EchoAlgorithm())
@@ -47,6 +61,17 @@ def test_runner_executes_single_packet_single_cell():
         "warning_count": 0,
         "error_count": 0,
     }
+    assert len(result.packet_outputs) == 1
+
+    packet_output = result.packet_outputs[0]
+    assert packet_output.packet_index == 0
+    assert len(packet_output.cell_outputs) == 1
+
+    cell_output = packet_output.cell_outputs[0]
+    assert cell_output.packet_index == 0
+    assert cell_output.cell_index == 0
+    assert cell_output.status == OK
+    assert cell_output.output == {"sample_count": 3}
 
 
 def test_runner_executes_multiple_packets():
@@ -63,53 +88,61 @@ def test_runner_executes_multiple_packets():
     ] == [1, 2]
 
 
-def test_algorithm_output_is_in_cell_result():
-    result = run_config(
-        TestcaseConfig(packets=[_packet([7, 8])]),
-        EchoAlgorithm(),
+def test_missing_cell_input_is_exposed_as_an_empty_sample_list():
+    cfg = TestcaseConfig(
+        packets=[PacketConfig(cells=[CellConfig(cell_index=7)])]
     )
 
-    cell_output = result.packet_outputs[0].cell_outputs[0]
-    assert cell_output.packet_index == 0
-    assert cell_output.cell_index == 0
-    assert cell_output.output == {"sample_count": 2}
+    result = run_config(cfg, EchoAlgorithm())
+
+    assert result.status == OK
+    assert result.packet_outputs[0].cell_outputs[0].output["sample_count"] == 0
 
 
-def test_cell_warning_propagates_to_run():
+def test_cell_warning_propagates_to_packet_and_run():
     result = run_config(
-        TestcaseConfig(packets=[_packet([])]),
+        TestcaseConfig(packets=[_packet([1])]),
         WarningAlgorithm(),
     )
 
     packet_output = result.packet_outputs[0]
     cell_output = packet_output.cell_outputs[0]
+
     assert result.status == WARNING
     assert packet_output.status == WARNING
     assert cell_output.status == WARNING
-    assert len(result.warnings) == 1
-    assert result.warnings[0].code == "SHORT_INPUT"
+    assert [item.code for item in cell_output.warnings] == ["SHORT_INPUT"]
+    assert [item.code for item in packet_output.warnings] == ["SHORT_INPUT"]
+    assert [item.code for item in result.warnings] == ["SHORT_INPUT"]
     assert result.warnings[0].packet_index == 0
     assert result.warnings[0].cell_index == 0
     assert result.warnings[0].fields == {"minimum": 2}
 
 
-def test_cell_error_sets_run_error():
+def test_cell_error_propagates_and_sets_error_result():
     result = run_config(
         TestcaseConfig(packets=[_packet([])]),
         ErrorAlgorithm(),
     )
 
+    packet_output = result.packet_outputs[0]
+    cell_output = packet_output.cell_outputs[0]
+
     assert result.status == ERROR
     assert result.exit_code == 1
-    assert result.packet_outputs[0].status == ERROR
-    assert result.packet_outputs[0].cell_outputs[0].status == ERROR
-    assert result.errors[0].code == "BAD_INPUT"
+    assert packet_output.status == ERROR
+    assert cell_output.status == ERROR
+    assert [item.code for item in cell_output.errors] == ["BAD_INPUT"]
+    assert [item.code for item in packet_output.errors] == ["BAD_INPUT"]
+    assert [item.code for item in result.errors] == ["BAD_INPUT"]
+    assert result.errors[0].fields == {
+        "field_name": "samples",
+        "value": -1,
+    }
 
 
-def test_algorithm_exception_returns_error_result():
-    cfg = TestcaseConfig(
-        packets=[_packet([1]), _packet([2])]
-    )
+def test_algorithm_exception_returns_structured_error_result():
+    cfg = TestcaseConfig(packets=[_packet([1]), _packet([2])])
 
     result = run_config(cfg, FailingAlgorithm())
 
@@ -123,12 +156,19 @@ def test_algorithm_exception_returns_error_result():
     assert result.errors[0].fields["exception_type"] == "RuntimeError"
 
 
-def test_static_config_is_not_mutated_by_runtime_output():
-    packet = _packet([1, 2])
+def test_runtime_output_does_not_mutate_static_config():
+    packet = _packet([4, 5])
     cfg = TestcaseConfig(packets=[packet])
+    original_global_parameters = copy.deepcopy(cfg.global_cfg.parameters)
+    original_packet_parameters = copy.deepcopy(packet.parameters)
+    original_cell_parameters = copy.deepcopy(packet.cells[0].parameters)
+    original_input = copy.deepcopy(packet.input_pkt_by_cc)
 
     result = run_config(cfg, EchoAlgorithm())
     result.packet_outputs[0].cell_outputs[0].output["sample_count"] = 99
 
-    assert packet.input_pkt_by_cc == {0: [1, 2]}
-    assert packet.cells[0].parameters == {}
+    assert cfg.global_cfg.parameters == original_global_parameters
+    assert packet.parameters == original_packet_parameters
+    assert packet.cells[0].parameters == original_cell_parameters
+    assert packet.input_pkt_by_cc == original_input
+    assert not hasattr(packet.cells[0], "output")

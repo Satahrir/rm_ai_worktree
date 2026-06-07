@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# pytest/cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# type/check/lint cache
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
