@@ -1,0 +1,50 @@
+--------------------------------------------------------------------------------
+Name                         Type                Size    Value
+--------------------------------------------------------------------------------
+packet_param                 packet_param        -       @00000001
+
+  header0                    header_t            -       @00000002
+    word0                    integral            32      'h00000000
+    packet_type              integral            4       'h0
+    fpga_link_id             integral            4       'h0
+    frame_num                integral            16      'h0000
+    slot_num                 integral            8       'h00
+
+    word1                    integral            32      'h00000000
+    StartSymbol              integral            4       'h0
+    EndSymbol                integral            4       'h0
+    RSV_word1                integral            24      'h000000
+
+    word2                    integral            32      'h00000000
+    Pwr_beta0                integral            8       'h00
+    Pwr_beta1                integral            8       'h00
+    Pwr_beta2                integral            8       'h00
+    Pwr_beta3                integral            8       'h00
+
+    word3                    integral            32      'h00000000
+    RSV_word3                integral            32      'h00000000
+
+  header1                    header_t            -       @00000003
+    word0                    integral            32      'h00000000
+    packet_type              integral            4       'h0
+    fpga_link_id             integral            4       'h0
+    frame_num                integral            16      'h0000
+    slot_num                 integral            8       'h00
+
+    word1                    integral            32      'h00000000
+    StartSymbol              integral            4       'h0
+    EndSymbol                integral            4       'h0
+    RSV_word1                integral            24      'h000000
+
+    word2                    integral            32      'h00000000
+    Pwr_beta0                integral            8       'h00
+    Pwr_beta1                integral            8       'h00
+    Pwr_beta2                integral            8       'h00
+    Pwr_beta3                integral            8       'h00
+
+    word3                    integral            32      'h00000000
+    RSV_word3                integral            32      'h00000000
+
+  word4                      integral            32      'h00000000
+  Payload                    da(integral)        -       -
+--------------------------------------------------------------------------------

@@ -179,6 +179,26 @@ Each agent must stay in its assigned area.
 
 - `docs/review/`
 
+### UVM table parser agent may modify
+
+- `utils/`
+- `schema_defs/uvm_table/`
+- `tests/test_utils/`
+- `tests/fixtures/uvm_table_print/`
+- `docs/interface/`
+
+### Workflow coordinator may modify
+
+- `AGENTS.md`
+- `agents/`
+- `docs/architecture/96_agent_journal.md`
+- `docs/architecture/97_current_task.md` through the renderer only
+- `docs/architecture/98_project_progress_snapshot.md`
+- `docs/architecture/99_multi_agent_workflow.md`
+- `scripts/`
+- `tests/test_scripts/`
+- directory-specific `AGENTS.md` files needed by the workflow
+
 ## Do not modify unrelated files
 
 Do not rewrite unrelated modules.
@@ -293,3 +313,67 @@ Documentation must distinguish:
 - future work
 
 Do not describe a planned feature as already implemented.
+
+# Mandatory Startup Sequence
+
+Before doing any work:
+
+1. Read `agents/project_status.json`. This is the authoritative active-task
+   status.
+2. Read `docs/architecture/97_current_task.md`. This is generated from the
+   authoritative status for human readability.
+3. Read `agents/README.md`.
+4. Read `docs/architecture/99_multi_agent_workflow.md`.
+5. Read your role-specific prompt under `agents/`.
+6. Read the nearest `AGENTS.md` files for every directory you may modify.
+7. Run the workflow preflight from the assigned worktree:
+
+```powershell
+python scripts/agent_workflow.py preflight
+```
+
+Then summarize:
+
+- current project status
+- current task
+- actual branch and worktree
+- allowed scope
+- forbidden scope
+- planned work
+
+Do not modify files if preflight reports an error. Resolve the branch,
+worktree, missing-file, or dirty-start problem first.
+
+`docs/architecture/96_agent_journal.md` is append-only history.
+`docs/architecture/98_project_progress_snapshot.md` is a historical snapshot.
+Neither file is an authoritative source for the active task.
+
+---
+
+# Mandatory Finish Sequence
+
+Before stopping, a feature agent must:
+
+1. Run its focused tests.
+2. Run the scope check:
+
+```powershell
+python scripts/agent_workflow.py check-scope
+```
+
+3. Report:
+
+- files changed
+- tests run
+- failures
+- limitations
+- follow-up needed
+
+Feature agents must not update shared workflow status files. After review or
+merge, the integration coordinator updates `agents/project_status.json`, runs:
+
+```powershell
+python scripts/agent_workflow.py render
+```
+
+and appends a concise entry to `docs/architecture/96_agent_journal.md`.

@@ -25,6 +25,9 @@ docs/architecture/
 
 docs/review/
   Review reports, risk analysis, and suggested follow-up tasks.
+
+docs/interface/
+  Boundary utility and external interface documentation.
 ```
 
 ## Reference documents

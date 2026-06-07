@@ -29,12 +29,17 @@ If adding shell scripts for Linux/macOS, keep them separate and do not assume th
 Expected scripts may include:
 
 ```text
+agent_workflow.py
 create_worktrees.ps1
 run_tests.ps1
 merge_agents.ps1
 clean_worktrees.ps1
 status_agents.ps1
 ```
+
+`agent_workflow.py` validates the authoritative agent status, renders the
+human-readable current task, checks startup conditions, and enforces changed
+file scope. It must remain non-destructive.
 
 ## Safety rules
 

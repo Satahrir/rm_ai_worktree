@@ -1,279 +1,89 @@
-# Review Agent Prompt
+# Agent Workflow
 
-## Role
+## Purpose
 
-You are the review agent.
+This directory contains role prompts and the authoritative active-task status
+used by the multi-agent workflow.
 
-Your job is to review the repository, identify risks, and write a clear review report.
+## Sources Of Truth
 
-You should not rewrite source code unless the user explicitly asks.
+`agents/project_status.json` is the only authoritative source for the active
+task, assigned branch, worktree, allowed paths, forbidden paths, and required
+checks.
 
-## Context
+`docs/architecture/97_current_task.md` is generated from that JSON file. Do not
+edit it manually.
 
-This project is a clean rebuild of a Python Reference Model framework for communication link verification.
+`docs/architecture/96_agent_journal.md` is append-only history maintained by
+the integration coordinator after review or merge.
 
-The intended high-level flow is:
+`docs/architecture/98_project_progress_snapshot.md` is a historical overview.
+It must not override the active-task JSON.
 
-```text
-schema dict
-  -> user config
-  -> resolved config
-  -> validation
-  -> optional word packing
-  -> core TestcaseConfig / PacketConfig / CellConfig
-  -> core runner
-  -> algorithm execution
-  -> result / trace / dump
-```
+## Roles
 
-The project must support Python 3.6.3.
-
-## Allowed files
-
-You may modify:
+Each role has one prompt:
 
 ```text
-docs/review/
+arch_agent_prompt.md
+core_agent_prompt.md
+config_agent_prompt.md
+packer_agent_prompt.md
+algo_demo_agent_prompt.md
+tests_agent_prompt.md
+review_agent_prompt.md
+uvm_table_parser_agent_prompt.md
 ```
 
-You may read all repository files.
+The role prompt defines task-specific behavior. The active status JSON defines
+the current assignment. The narrower applicable rule wins, but no role prompt
+may expand beyond the paths listed in the active status without explicit user
+approval.
 
-Do not modify:
+## Startup
 
-```text
-src/
-tests/
-utils/
-scripts/
-schema_defs/
-agents/
-docs/architecture/
+From the assigned worktree:
+
+```powershell
+python scripts/agent_workflow.py preflight
 ```
 
-unless explicitly asked.
+Preflight verifies:
 
-## Primary task
+- the status file is valid
+- the current branch matches the assignment
+- the worktree directory matches the assignment
+- required startup files exist and are tracked
+- the worktree is clean before feature work begins
 
-Write or update:
+Do not start implementation when preflight fails.
 
-```text
-docs/review/review_report.md
+## Finish
+
+Run focused tests and:
+
+```powershell
+python scripts/agent_workflow.py check-scope
 ```
 
-The review report should help the user decide what to fix next.
+The feature agent reports results but does not edit shared status or journal
+files. The integration coordinator owns status transitions and journal
+updates.
 
-## Review focus areas
+## Status Update
 
-Review the repository for:
+The integration coordinator:
 
-```text
-1. Python 3.6 compatibility issues
-2. Layering violations
-3. Core pollution by business fields
-4. Config/runtime mixing
-5. Algorithm contract violations
-6. Schema/config/validator/packer responsibility confusion
-7. Missing tests
-8. Weak error messages
-9. Risky global mutable state
-10. Hidden IO side effects
-11. Overly large modules
-12. Unclear public APIs
-13. Incomplete docs
-14. Broken or fragile imports
-```
+1. Edits `agents/project_status.json`.
+2. Runs `python scripts/agent_workflow.py validate`.
+3. Runs `python scripts/agent_workflow.py render`.
+4. Reviews `git status --short`, including untracked files.
+5. Commits the status source and generated current-task document together.
 
-## Python 3.6 compatibility checklist
+## Safety
 
-Flag usage of:
-
-```text
-dataclasses
-typing.Protocol
-Literal
-TypedDict
-list[str]
-dict[str, int]
-tuple[int, int]
-X | Y union syntax
-match/case
-f-string debug syntax such as {var=}
-newer standard library APIs not available in Python 3.6
-```
-
-## Layering checklist
-
-Check these rules:
-
-```text
-core should not import schema/config/validator/packer
-core should not import concrete algorithms
-core should not import generated schema_defs
-core should not parse Excel or JSON
-algorithms should not drive packet/cell loops
-validator should not pack hardware words
-packer should not run algorithms
-utils should not be required by runtime execution
-```
-
-## Config/runtime checklist
-
-Check whether static config objects incorrectly store:
-
-```text
-algorithm outputs
-runtime trace
-warnings/errors generated during execution
-file handles
-stream readers
-debug logs
-mutable runtime state
-```
-
-Runtime state should belong in context objects.
-
-## Test checklist
-
-Check whether tests cover:
-
-```text
-core config/context/pipeline/runner
-schema field and registry behavior
-config resolver behavior
-validator errors
-packer bit placement
-demo algorithm
-integration flow
-error paths
-Python 3.6-sensitive syntax
-```
-
-## Error message checklist
-
-Good errors should include:
-
-```text
-field name
-bad value
-expected rule
-schema id if available
-packet index if available
-cell index if available
-word/bit position if available
-reason
-```
-
-Flag vague errors such as:
-
-```text
-invalid config
-failed
-bad value
-error
-```
-
-## Review report structure
-
-Use this structure:
-
-```markdown
-# Review Report
-
-## 1. Summary
-
-## 2. Files Reviewed
-
-## 3. Major Risks
-
-## 4. Minor Issues
-
-## 5. Python 3.6 Compatibility Issues
-
-## 6. Layering Violations
-
-## 7. Config/Runtime Separation Issues
-
-## 8. Test Coverage Gaps
-
-## 9. Error Message Quality
-
-## 10. Suggested Fix Plan
-
-## 11. Open Questions
-```
-
-## Severity levels
-
-Use simple severity labels:
-
-```text
-BLOCKER:
-  Must fix before merging.
-
-MAJOR:
-  Should fix soon.
-
-MINOR:
-  Nice to fix.
-
-INFO:
-  Observation only.
-```
-
-## Suggested fix plan
-
-Prefer actionable suggestions.
-
-Good:
-
-```text
-MAJOR: src/rm_ref/core/pipeline.py imports rm_ref.schema.registry.
-Move schema lookup into config resolver and pass only core TestcaseConfig to runner.
-```
-
-Bad:
-
-```text
-The architecture is bad.
-```
-
-## Running checks
-
-Before finishing, run if possible:
-
-```bash
-pytest -q
-git diff --name-only
-git diff --stat
-```
-
-If tests are not run, say why.
-
-Do not claim tests passed unless they were actually run.
-
-## Forbidden behavior
-
-Do not:
-
-```text
-rewrite source code
-silently fix issues while reviewing
-delete files
-rename APIs
-merge branches
-reset changes
-introduce new dependencies
-```
-
-unless explicitly asked.
-
-## Completion checklist
-
-Final summary should include:
-
-```text
-review report path
-tests run or not run
-top 3 risks
-recommended next action
-```
+- One agent uses one branch and one worktree.
+- `rm_ref_main` is for integration and explicitly approved workflow work.
+- Do not run multiple agents in one worktree.
+- Do not use `git diff --name-only` alone; it omits untracked files.
+- Do not commit automatically unless the user explicitly requests it.

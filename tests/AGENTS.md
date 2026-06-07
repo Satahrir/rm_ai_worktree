@@ -37,6 +37,9 @@ tests/test_algorithms/
 
 tests/test_integration/
   End-to-end flow tests.
+
+tests/test_scripts/
+  Developer workflow and maintenance script tests.
 ```
 
 ## Preferred style
