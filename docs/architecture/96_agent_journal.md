@@ -93,3 +93,28 @@ Result:
 
 - task status set to `MERGED`
 - generic JSON output is available without RM-specific adaptation
+
+------
+
+### Workflow Hardening And Documentation Reconciliation
+
+Completed:
+
+- made integration-worktree status authoritative across feature worktrees
+- extended scope checking to committed feature-branch changes
+- added task lifecycle gates to preflight
+- reconciled the workflow README and maintained project snapshot
+- documented the RM Core as an implemented Minimal Framework
+- documented incomplete outer layers without describing core as unusable
+
+Clarification:
+
+- earlier pending UVM parser entries are append-only historical records
+- Python and hierarchical JSON UVM table outputs are both merged
+- `docs/architecture/98_project_progress_snapshot.md` reflects the
+  2026-06-08 project state
+
+Next:
+
+- harden core exception lifecycle finalization
+- add stable dictionary serialization for diagnostics and run results

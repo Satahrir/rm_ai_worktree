@@ -4,41 +4,42 @@
 
 ## Assignment
 
-- Task: `uvm-table-json`
-- Status: `MERGED`
-- Role: `uvm_table_json`
-- Branch: `codex/uvm-json`
-- Worktree: `rm_ref_uvm_json`
-- Prompt: `agents/uvm_table_json_agent_prompt.md`
+- Task: `core-hardening-v2`
+- Status: `READY`
+- Role: `core`
+- Branch: `codex/core`
+- Worktree: `rm_ref_core`
+- Prompt: `agents/core_hardening_agent_prompt.md`
 
 ## Goal
 
-Add deterministic hierarchical JSON output to the existing UVM table-printer parser.
+Harden RM core exception lifecycle finalization and stable result serialization.
 
 ## Allowed Paths
 
-- `utils/`
-- `schema_defs/uvm_table/`
-- `tests/test_utils/`
-- `tests/fixtures/uvm_table_print/`
-- `docs/interface/`
+- `src/rm_ref/core/`
+- `tests/test_core/`
 
 ## Forbidden Paths
 
-- `src/rm_ref/core/`
+- `src/rm_ref/schema/`
 - `src/rm_ref/config/`
 - `src/rm_ref/validator/`
 - `src/rm_ref/packer/`
 - `src/rm_ref/algorithms/`
+- `utils/`
+- `schema_defs/`
+- `docs/`
 
 ## Required Checks
 
-- `python -m pytest -q tests/test_utils`
-- `python utils/parse_uvm_table_print.py --help`
+- `python -m pytest -q tests/test_core`
+- `python -m pytest -q`
 - `python scripts/agent_workflow.py check-scope`
 
 ## Notes
 
-- Implement generic hierarchical JSON before RM-specific mapping or adaptation.
-- Keep the existing Python output as the default and preserve backward compatibility.
-- Do not reuse the completed rm_ref_uvm_parser worktree.
+- The RM Core Minimal Framework is already implemented and usable.
+- Keep fail-fast exception behavior while finalizing all started contexts.
+- Preserve existing object APIs while adding deterministic to_dict serialization.
+- Fast-forward the existing clean rm_ref_core worktree to the committed main baseline before implementation.

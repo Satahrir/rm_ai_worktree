@@ -7,9 +7,14 @@ used by the multi-agent workflow.
 
 ## Sources Of Truth
 
-`agents/project_status.json` is the only authoritative source for the active
-task, assigned branch, worktree, allowed paths, forbidden paths, and required
-checks.
+The copy of `agents/project_status.json` in the integration worktree is the
+only authoritative source for the active task, assigned branch, worktree,
+allowed paths, forbidden paths, and required checks.
+
+Feature worktrees contain tracked snapshots of the file. After branches
+diverge, those snapshots are not authoritative. Workflow commands locate the
+integration worktree with `git worktree list` and read status from there unless
+an explicit `--status-file` is provided.
 
 `docs/architecture/97_current_task.md` is generated from that JSON file. Do not
 edit it manually.
@@ -17,8 +22,8 @@ edit it manually.
 `docs/architecture/96_agent_journal.md` is append-only history maintained by
 the integration coordinator after review or merge.
 
-`docs/architecture/98_project_progress_snapshot.md` is a historical overview.
-It must not override the active-task JSON.
+`docs/architecture/98_project_progress_snapshot.md` is a maintained project
+overview. It must not override the active-task JSON.
 
 ## Roles
 
@@ -27,6 +32,7 @@ Each role has one prompt:
 ```text
 arch_agent_prompt.md
 core_agent_prompt.md
+core_hardening_agent_prompt.md
 config_agent_prompt.md
 packer_agent_prompt.md
 algo_demo_agent_prompt.md
@@ -52,6 +58,8 @@ python scripts/agent_workflow.py preflight
 Preflight verifies:
 
 - the status file is valid
+- the authoritative status comes from the integration worktree
+- the task status allows feature work
 - the current branch matches the assignment
 - the worktree directory matches the assignment
 - required startup files exist and are tracked
@@ -67,6 +75,9 @@ Run focused tests and:
 python scripts/agent_workflow.py check-scope
 ```
 
+Scope checking includes committed feature-branch changes since divergence from
+the integration branch, staged changes, unstaged changes, and untracked files.
+
 The feature agent reports results but does not edit shared status or journal
 files. The integration coordinator owns status transitions and journal
 updates.
@@ -80,6 +91,10 @@ The integration coordinator:
 3. Runs `python scripts/agent_workflow.py render`.
 4. Reviews `git status --short`, including untracked files.
 5. Commits the status source and generated current-task document together.
+
+After a milestone or workflow-rule change, the coordinator also audits the
+maintained README, progress snapshot, workflow guide, and affected interface or
+architecture documents for stale implemented-status claims.
 
 ## Safety
 

@@ -353,8 +353,8 @@ Do not modify files if preflight reports an error. Resolve the branch,
 worktree, missing-file, or dirty-start problem first.
 
 `docs/architecture/96_agent_journal.md` is append-only history.
-`docs/architecture/98_project_progress_snapshot.md` is a historical snapshot.
-Neither file is an authoritative source for the active task.
+`docs/architecture/98_project_progress_snapshot.md` is a maintained project
+overview. Neither file is an authoritative source for the active task.
 
 ---
 
@@ -385,3 +385,15 @@ python scripts/agent_workflow.py render
 ```
 
 and appends a concise entry to `docs/architecture/96_agent_journal.md`.
+
+When a milestone or workflow rule changes, the integration coordinator must
+also audit and refresh the applicable maintained documents:
+
+- `agents/README.md` for workflow behavior
+- `docs/architecture/98_project_progress_snapshot.md` for the current project
+  overview
+- `docs/architecture/99_multi_agent_workflow.md` for workflow rules
+- interface or architecture documents whose implemented-status claims changed
+
+Historical journal entries remain append-only. Correct stale history by
+appending a new clarification, not by rewriting old entries.

@@ -4,54 +4,56 @@
   "integration_branch": "main",
   "integration_worktree": "rm_ref_main",
   "active_task": {
-    "id": "uvm-table-json",
-    "status": "MERGED",
-    "goal": "Add deterministic hierarchical JSON output to the existing UVM table-printer parser.",
-    "role": "uvm_table_json",
-    "branch": "codex/uvm-json",
-    "worktree": "rm_ref_uvm_json",
-    "prompt": "agents/uvm_table_json_agent_prompt.md",
+    "id": "core-hardening-v2",
+    "status": "READY",
+    "goal": "Harden RM core exception lifecycle finalization and stable result serialization.",
+    "role": "core",
+    "branch": "codex/core",
+    "worktree": "rm_ref_core",
+    "prompt": "agents/core_hardening_agent_prompt.md",
     "allowed_paths": [
-      "utils/",
-      "schema_defs/uvm_table/",
-      "tests/test_utils/",
-      "tests/fixtures/uvm_table_print/",
-      "docs/interface/"
+      "src/rm_ref/core/",
+      "tests/test_core/"
     ],
     "forbidden_paths": [
-      "src/rm_ref/core/",
+      "src/rm_ref/schema/",
       "src/rm_ref/config/",
       "src/rm_ref/validator/",
       "src/rm_ref/packer/",
-      "src/rm_ref/algorithms/"
+      "src/rm_ref/algorithms/",
+      "utils/",
+      "schema_defs/",
+      "docs/"
     ],
     "required_files": [
       "AGENTS.md",
       "agents/README.md",
       "agents/project_status.json",
-      "agents/uvm_table_json_agent_prompt.md",
+      "agents/core_hardening_agent_prompt.md",
       "docs/architecture/97_current_task.md",
       "docs/architecture/99_multi_agent_workflow.md",
       "scripts/AGENTS.md",
       "scripts/agent_workflow.py",
-      "utils/AGENTS.md",
+      "src/AGENTS.md",
+      "src/rm_ref/AGENTS.md",
+      "src/rm_ref/core/AGENTS.md",
       "tests/AGENTS.md",
-      "doc/ref_docs/interface/AGENTS.md",
-      "doc/ref_docs/interface/uvm_table_print_demo.txt",
-      "tests/fixtures/uvm_table_print/demo_packet_param_table.txt",
-      "utils/parse_uvm_table_print.py",
-      "schema_defs/uvm_table/demo_generated_para.py",
-      "docs/interface/uvm_table_print_parser.md"
+      "src/rm_ref/core/runner.py",
+      "src/rm_ref/core/pipeline.py",
+      "src/rm_ref/core/result.py",
+      "src/rm_ref/core/diagnostic.py",
+      "tests/test_core/test_runner.py"
     ],
     "checks": [
-      "python -m pytest -q tests/test_utils",
-      "python utils/parse_uvm_table_print.py --help",
+      "python -m pytest -q tests/test_core",
+      "python -m pytest -q",
       "python scripts/agent_workflow.py check-scope"
     ],
     "notes": [
-      "Implement generic hierarchical JSON before RM-specific mapping or adaptation.",
-      "Keep the existing Python output as the default and preserve backward compatibility.",
-      "Do not reuse the completed rm_ref_uvm_parser worktree."
+      "The RM Core Minimal Framework is already implemented and usable.",
+      "Keep fail-fast exception behavior while finalizing all started contexts.",
+      "Preserve existing object APIs while adding deterministic to_dict serialization.",
+      "Fast-forward the existing clean rm_ref_core worktree to the committed main baseline before implementation."
     ]
   }
 }

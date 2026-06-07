@@ -59,7 +59,7 @@ docs/architecture/96_agent_journal.md
   Append-only integration history.
 
 docs/architecture/98_project_progress_snapshot.md
-  Historical project overview.
+  Maintained project overview. Not authoritative for the active task.
 
 agents/PROJECT_STATUS.md
   Compatibility pointer only.
@@ -82,13 +82,17 @@ git status --short
 The coordinator commits the status JSON, generated task document, role prompt,
 fixtures, and required workflow files before creating a feature worktree.
 
-Create the worktree from `rm_ref_main`:
+Create or update the assigned worktree from `rm_ref_main`. For a new branch:
 
 ```powershell
-git worktree add ..\rm_ref_uvm_parser -b codex/uvm-parser
+git worktree add ..\<assigned-worktree> -b <assigned-branch>
 ```
 
 The branch and worktree names must match the authoritative status exactly.
+
+If an assigned branch/worktree already exists and is clean, fast-forward it to
+the committed integration baseline before feature work. Do not reset or delete
+user changes to force synchronization.
 
 ## 5. Agent Startup
 
@@ -177,6 +181,8 @@ After review or merge, the coordinator:
 2. Runs `python scripts/agent_workflow.py render`.
 3. Appends a concise entry to `docs/architecture/96_agent_journal.md`.
 4. Commits the JSON, generated view, and journal together.
+5. Audits the maintained workflow README, progress snapshot, and affected
+   interface or architecture documents for stale status claims.
 
 ## 9. Status Values
 
