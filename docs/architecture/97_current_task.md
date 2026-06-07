@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `uvm-table-parser`
-- Status: `READY_FOR_WORKTREE`
+- Status: `MERGED`
 - Role: `uvm_table_parser`
 - Branch: `codex/uvm-parser`
 - Worktree: `rm_ref_uvm_parser`

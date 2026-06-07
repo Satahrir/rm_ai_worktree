@@ -49,3 +49,24 @@ Pending:
 
 - commit workflow setup before creating the UVM parser worktree
 - create `codex/uvm-parser` in `rm_ref_uvm_parser`
+
+------
+
+### UVM Table Parser Integration
+
+Completed:
+
+- merged parser feature commit `4a86815` into `main` as `c6dd254`
+- verified parser CLI help
+- verified Python 3.6-compatible syntax
+- ran focused and full regression tests
+
+Tests:
+
+- `python -m pytest -q tests/test_utils`: 24 passed
+- `python -m pytest -q`: 69 passed
+
+Result:
+
+- task status set to `MERGED`
+- follow-up JSON bundle work remains a separate task and branch

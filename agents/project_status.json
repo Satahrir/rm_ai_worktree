@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "uvm-table-parser",
-    "status": "READY_FOR_WORKTREE",
+    "status": "MERGED",
     "goal": "Implement a Python 3.6-compatible hierarchical UVM table printer parser utility.",
     "role": "uvm_table_parser",
     "branch": "codex/uvm-parser",
