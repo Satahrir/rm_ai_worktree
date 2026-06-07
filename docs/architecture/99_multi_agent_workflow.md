@@ -95,6 +95,7 @@ python scripts/agent_workflow.py preflight
 
 Preflight checks:
 
+- task status allows feature work
 - valid status schema
 - expected branch
 - expected worktree directory
@@ -103,6 +104,9 @@ Preflight checks:
 - worktree is clean
 
 An agent must stop before implementation when preflight fails.
+
+Feature preflight is allowed only for `READY` and `IN_PROGRESS`. It rejects
+planned, setup-only, review, merged, and blocked tasks.
 
 After preflight, read:
 
@@ -183,6 +187,9 @@ BLOCKED
 
 `IN_PROGRESS` is valid only after the assigned branch and worktree exist and
 preflight passes.
+
+`READY` and `IN_PROGRESS` are the only statuses that allow feature preflight.
+All status values are validated against the list above.
 
 ## 10. Safety Rules
 

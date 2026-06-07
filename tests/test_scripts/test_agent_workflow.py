@@ -59,6 +59,16 @@ def test_validate_status_rejects_missing_task_key():
     assert "active_task missing keys: branch" in str(exc_info.value)
 
 
+def test_validate_status_rejects_unknown_status():
+    status = make_status()
+    status["active_task"]["status"] = "READY_TO_GO"
+
+    with pytest.raises(agent_workflow.WorkflowError) as exc_info:
+        agent_workflow.validate_status(status)
+
+    assert "invalid active_task.status 'READY_TO_GO'" in str(exc_info.value)
+
+
 def test_render_current_task_uses_authoritative_assignment():
     rendered = agent_workflow.render_current_task(make_status())
 
@@ -143,6 +153,84 @@ def test_preflight_reports_branch_worktree_and_tracking_errors(monkeypatch):
     assert "branch mismatch: expected codex/example, found main" in errors
     assert any("worktree mismatch" in error for error in errors)
     assert "required file is not tracked: agents/example.md" in errors
+
+
+@pytest.mark.parametrize(
+    "task_status",
+    [
+        "PLANNED",
+        "READY_FOR_WORKTREE",
+        "REVIEW",
+        "MERGED",
+        "BLOCKED",
+    ],
+)
+def test_preflight_rejects_status_that_does_not_allow_feature_work(
+    monkeypatch, task_status
+):
+    status = make_status()
+    status["active_task"]["status"] = task_status
+
+    def fake_run_git(args, repo_root=None):
+        if args == ["branch", "--show-current"]:
+            return "codex/example"
+        if args == ["ls-files"]:
+            return "\n".join(status["active_task"]["required_files"])
+        raise AssertionError("unexpected git arguments: {0}".format(args))
+
+    monkeypatch.setattr(agent_workflow, "_run_git", fake_run_git)
+    monkeypatch.setattr(agent_workflow.os.path, "exists", lambda path: True)
+    monkeypatch.setattr(
+        agent_workflow,
+        "open",
+        lambda path, mode: FakeReadableFile(
+            agent_workflow.render_current_task(status)
+        ),
+        raising=False,
+    )
+
+    errors = agent_workflow.preflight_errors(
+        status,
+        repo_root=os.path.join("workspace", "demo_example"),
+        require_clean=False,
+    )
+
+    assert (
+        "task status {0} does not allow feature preflight; expected one of "
+        "READY, IN_PROGRESS".format(task_status)
+    ) in errors
+
+
+@pytest.mark.parametrize("task_status", ["READY", "IN_PROGRESS"])
+def test_preflight_accepts_status_that_allows_feature_work(
+    monkeypatch, task_status
+):
+    status = make_status()
+    status["active_task"]["status"] = task_status
+
+    def fake_run_git(args, repo_root=None):
+        if args == ["branch", "--show-current"]:
+            return "codex/example"
+        if args == ["ls-files"]:
+            return "\n".join(status["active_task"]["required_files"])
+        raise AssertionError("unexpected git arguments: {0}".format(args))
+
+    monkeypatch.setattr(agent_workflow, "_run_git", fake_run_git)
+    monkeypatch.setattr(agent_workflow.os.path, "exists", lambda path: True)
+    monkeypatch.setattr(
+        agent_workflow,
+        "open",
+        lambda path, mode: FakeReadableFile(
+            agent_workflow.render_current_task(status)
+        ),
+        raising=False,
+    )
+
+    assert agent_workflow.preflight_errors(
+        status,
+        repo_root=os.path.join("workspace", "demo_example"),
+        require_clean=False,
+    ) == []
 
 
 def test_preflight_reports_stale_generated_current_task(monkeypatch):

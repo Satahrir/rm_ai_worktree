@@ -35,6 +35,21 @@ REQUIRED_TASK_KEYS = (
     "checks",
 )
 
+VALID_TASK_STATUSES = (
+    "PLANNED",
+    "READY_FOR_WORKTREE",
+    "READY",
+    "IN_PROGRESS",
+    "REVIEW",
+    "MERGED",
+    "BLOCKED",
+)
+
+PREFLIGHT_ALLOWED_STATUSES = (
+    "READY",
+    "IN_PROGRESS",
+)
+
 
 class WorkflowError(Exception):
     pass
@@ -83,6 +98,13 @@ def validate_status(status):
 
     if not task["allowed_paths"]:
         raise WorkflowError("active_task.allowed_paths must not be empty")
+
+    if task["status"] not in VALID_TASK_STATUSES:
+        raise WorkflowError(
+            "invalid active_task.status {0!r}: expected one of {1}".format(
+                task["status"], ", ".join(VALID_TASK_STATUSES)
+            )
+        )
 
     return status
 
@@ -191,6 +213,14 @@ def tracked_files(repo_root=REPO_ROOT):
 def preflight_errors(status, repo_root=REPO_ROOT, require_clean=True):
     task = status["active_task"]
     errors = []
+
+    if task["status"] not in PREFLIGHT_ALLOWED_STATUSES:
+        errors.append(
+            "task status {0} does not allow feature preflight; expected one of "
+            "{1}".format(
+                task["status"], ", ".join(PREFLIGHT_ALLOWED_STATUSES)
+            )
+        )
 
     branch = _run_git(["branch", "--show-current"], repo_root)
     if branch != task["branch"]:
