@@ -8,10 +8,6 @@ import sys
 
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_STATUS_PATH = os.path.join(REPO_ROOT, "agents", "project_status.json")
-DEFAULT_CURRENT_TASK_PATH = os.path.join(
-    REPO_ROOT, "docs", "architecture", "97_current_task.md"
-)
 
 REQUIRED_TOP_LEVEL_KEYS = (
     "version",
@@ -62,15 +58,20 @@ def _normalized_path(path):
     return normalized
 
 
-def load_status(path=DEFAULT_STATUS_PATH):
+def _read_status_json(path):
     try:
         with open(path, "r") as stream:
-            status = json.load(stream)
+            return json.load(stream)
     except IOError as exc:
         raise WorkflowError("cannot read status file: {0}".format(exc))
     except ValueError as exc:
         raise WorkflowError("invalid status JSON: {0}".format(exc))
 
+
+def load_status(path=None, repo_root=REPO_ROOT):
+    if path is None:
+        path = authoritative_status_path(repo_root)
+    status = _read_status_json(path)
     validate_status(status)
     return status
 
@@ -147,7 +148,11 @@ def render_current_task(status):
     return "\n".join(lines)
 
 
-def write_current_task(status, output_path=DEFAULT_CURRENT_TASK_PATH):
+def write_current_task(status, output_path=None):
+    if output_path is None:
+        output_path = os.path.join(
+            REPO_ROOT, "docs", "architecture", "97_current_task.md"
+        )
     rendered = render_current_task(status)
     with open(output_path, "w") as stream:
         stream.write(rendered)
@@ -171,7 +176,56 @@ def _run_git(args, repo_root=REPO_ROOT):
     return stdout.strip()
 
 
-def changed_paths(repo_root=REPO_ROOT):
+def _parse_worktree_list(output):
+    worktrees = []
+    current = {}
+    for line in output.splitlines() + [""]:
+        if not line:
+            if current:
+                worktrees.append(current)
+                current = {}
+            continue
+        key, _, value = line.partition(" ")
+        current[key] = value
+    return worktrees
+
+
+def authoritative_status_path(repo_root=REPO_ROOT):
+    local_status_path = os.path.join(repo_root, "agents", "project_status.json")
+    local_status = _read_status_json(local_status_path)
+
+    integration_branch = local_status.get("integration_branch")
+    integration_worktree = local_status.get("integration_worktree")
+    if not integration_branch or not integration_worktree:
+        raise WorkflowError(
+            "local status file must define integration_branch and "
+            "integration_worktree"
+        )
+
+    output = _run_git(["worktree", "list", "--porcelain"], repo_root)
+    expected_branch = "refs/heads/{0}".format(integration_branch)
+    matches = []
+    for worktree in _parse_worktree_list(output):
+        path = worktree.get("worktree")
+        branch = worktree.get("branch")
+        if (
+            path
+            and branch == expected_branch
+            and os.path.basename(os.path.abspath(path)).lower()
+            == integration_worktree.lower()
+        ):
+            matches.append(path)
+
+    if len(matches) != 1:
+        raise WorkflowError(
+            "cannot locate integration worktree {0} on branch {1}".format(
+                integration_worktree, integration_branch
+            )
+        )
+    return os.path.join(matches[0], "agents", "project_status.json")
+
+
+def changed_paths(repo_root=REPO_ROOT, integration_branch=None):
     tracked = _run_git(["diff", "--name-only", "--relative"], repo_root)
     staged = _run_git(
         ["diff", "--cached", "--name-only", "--relative"], repo_root
@@ -179,8 +233,19 @@ def changed_paths(repo_root=REPO_ROOT):
     untracked = _run_git(
         ["ls-files", "--others", "--exclude-standard"], repo_root
     )
+    committed = ""
+    if integration_branch:
+        committed = _run_git(
+            [
+                "diff",
+                "--name-only",
+                "--relative",
+                "{0}...HEAD".format(integration_branch),
+            ],
+            repo_root,
+        )
     paths = set()
-    for output in (tracked, staged, untracked):
+    for output in (tracked, staged, untracked, committed):
         for line in output.splitlines():
             if line.strip():
                 paths.add(_normalized_path(line.strip()))
@@ -210,9 +275,16 @@ def tracked_files(repo_root=REPO_ROOT):
     return set(_normalized_path(path) for path in output.splitlines() if path)
 
 
-def preflight_errors(status, repo_root=REPO_ROOT, require_clean=True):
+def preflight_errors(
+    status,
+    repo_root=REPO_ROOT,
+    require_clean=True,
+    status_root=None,
+):
     task = status["active_task"]
     errors = []
+    if status_root is None:
+        status_root = repo_root
 
     if task["status"] not in PREFLIGHT_ALLOWED_STATUSES:
         errors.append(
@@ -250,7 +322,7 @@ def preflight_errors(status, repo_root=REPO_ROOT, require_clean=True):
             errors.append("required file is not tracked: {0}".format(normalized))
 
     current_task_path = os.path.join(
-        repo_root, "docs", "architecture", "97_current_task.md"
+        status_root, "docs", "architecture", "97_current_task.md"
     )
     if os.path.exists(current_task_path):
         try:
@@ -292,8 +364,10 @@ def _build_parser():
     )
     parser.add_argument(
         "--status-file",
-        default=DEFAULT_STATUS_PATH,
-        help="Path to the authoritative project status JSON.",
+        help=(
+            "Path to the authoritative project status JSON. By default, "
+            "locate it in the integration worktree."
+        ),
     )
     subparsers = parser.add_subparsers(dest="command")
 
@@ -305,8 +379,10 @@ def _build_parser():
     )
     render_parser.add_argument(
         "--output",
-        default=DEFAULT_CURRENT_TASK_PATH,
-        help="Generated current-task Markdown path.",
+        help=(
+            "Generated current-task Markdown path. By default, write it in "
+            "the integration worktree."
+        ),
     )
 
     preflight_parser = subparsers.add_parser(
@@ -332,17 +408,33 @@ def main(argv=None):
         return 2
 
     try:
-        status = load_status(args.status_file)
+        status_path = (
+            args.status_file
+            if args.status_file
+            else authoritative_status_path()
+        )
+        status = load_status(status_path)
+        status_root = os.path.dirname(os.path.dirname(status_path))
         if args.command == "show":
             _print_status(status)
         elif args.command == "validate":
             print("[OK] status file is valid")
         elif args.command == "render":
-            write_current_task(status, args.output)
-            print("[OK] wrote {0}".format(args.output))
+            output_path = args.output
+            if not output_path:
+                output_path = os.path.join(
+                    status_root,
+                    "docs",
+                    "architecture",
+                    "97_current_task.md",
+                )
+            write_current_task(status, output_path)
+            print("[OK] wrote {0}".format(output_path))
         elif args.command == "preflight":
             errors = preflight_errors(
-                status, require_clean=not args.allow_dirty
+                status,
+                require_clean=not args.allow_dirty,
+                status_root=status_root,
             )
             if errors:
                 for error in errors:
@@ -350,7 +442,9 @@ def main(argv=None):
                 return 1
             print("[OK] preflight passed")
         elif args.command == "check-scope":
-            paths = changed_paths()
+            paths = changed_paths(
+                integration_branch=status["integration_branch"]
+            )
             violations = scope_violations(
                 paths, status["active_task"]["allowed_paths"]
             )

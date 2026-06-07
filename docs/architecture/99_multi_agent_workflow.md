@@ -33,8 +33,12 @@ implementation in `rm_ref_main`.
 There is one authoritative active-task source:
 
 ```text
-agents/project_status.json
+<integration-worktree>/agents/project_status.json
 ```
+
+Feature worktrees contain tracked snapshots of this file, but those snapshots
+are not authoritative after the branches diverge. Workflow commands locate the
+integration worktree with `git worktree list` and read status from there.
 
 This file owns:
 
@@ -130,6 +134,8 @@ python scripts/agent_workflow.py check-scope
 
 The command checks:
 
+- files committed on the feature branch since it diverged from the integration
+  branch
 - unstaged tracked changes
 - staged changes
 - untracked files

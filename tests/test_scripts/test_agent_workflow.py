@@ -112,15 +112,104 @@ def test_changed_paths_includes_tracked_staged_and_untracked(monkeypatch):
                 "--others",
                 "--exclude-standard",
             ): "docs/interface/new.md",
+            (
+                "diff",
+                "--name-only",
+                "--relative",
+                "main...HEAD",
+            ): "utils/committed.py",
         }
         return outputs[tuple(args)]
 
     monkeypatch.setattr(agent_workflow, "_run_git", fake_run_git)
 
-    assert agent_workflow.changed_paths() == [
+    assert agent_workflow.changed_paths(integration_branch="main") == [
         "docs/interface/new.md",
         "tests/test_utils/test_changed.py",
         "utils/changed.py",
+        "utils/committed.py",
+    ]
+
+
+def test_parse_worktree_list():
+    output = (
+        "worktree D:/workspace/demo_main\n"
+        "HEAD abc123\n"
+        "branch refs/heads/main\n"
+        "\n"
+        "worktree D:/workspace/demo_feature\n"
+        "HEAD def456\n"
+        "branch refs/heads/codex/example\n"
+    )
+
+    assert agent_workflow._parse_worktree_list(output) == [
+        {
+            "worktree": "D:/workspace/demo_main",
+            "HEAD": "abc123",
+            "branch": "refs/heads/main",
+        },
+        {
+            "worktree": "D:/workspace/demo_feature",
+            "HEAD": "def456",
+            "branch": "refs/heads/codex/example",
+        },
+    ]
+
+
+def test_authoritative_status_path_uses_integration_worktree(
+    monkeypatch, tmp_path
+):
+    feature_root = tmp_path / "demo_feature"
+    integration_root = tmp_path / "demo_main"
+    feature_status = feature_root / "agents" / "project_status.json"
+    feature_status.parent.mkdir(parents=True)
+    integration_root.mkdir()
+    feature_status.write_text(
+        '{"integration_branch": "main", '
+        '"integration_worktree": "demo_main"}',
+        encoding="utf-8",
+    )
+
+    def fake_run_git(args, repo_root=None):
+        assert args == ["worktree", "list", "--porcelain"]
+        return (
+            "worktree {0}\n"
+            "HEAD abc123\n"
+            "branch refs/heads/main\n"
+            "\n"
+            "worktree {1}\n"
+            "HEAD def456\n"
+            "branch refs/heads/codex/example\n".format(
+                str(integration_root), str(feature_root)
+            )
+        )
+
+    monkeypatch.setattr(agent_workflow, "_run_git", fake_run_git)
+
+    assert agent_workflow.authoritative_status_path(
+        repo_root=str(feature_root)
+    ) == str(integration_root / "agents" / "project_status.json")
+
+
+def test_changed_paths_includes_only_committed_changes(monkeypatch):
+    def fake_run_git(args, repo_root=None):
+        outputs = {
+            ("diff", "--name-only", "--relative"): "",
+            ("diff", "--cached", "--name-only", "--relative"): "",
+            ("ls-files", "--others", "--exclude-standard"): "",
+            (
+                "diff",
+                "--name-only",
+                "--relative",
+                "main...HEAD",
+            ): "src/core/committed.py",
+        }
+        return outputs[tuple(args)]
+
+    monkeypatch.setattr(agent_workflow, "_run_git", fake_run_git)
+
+    assert agent_workflow.changed_paths(integration_branch="main") == [
+        "src/core/committed.py"
     ]
 
 
