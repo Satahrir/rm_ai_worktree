@@ -1,0 +1,13 @@
+Read AGENTS.md.
+
+Follow the startup sequence.
+
+Do not write code yet.
+
+Summarize:
+1. Project status
+2. Current task
+3. Allowed directories
+4. Forbidden directories
+
+Wait for approval.

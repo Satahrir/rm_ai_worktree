@@ -118,3 +118,31 @@ Next:
 
 - harden core exception lifecycle finalization
 - add stable dictionary serialization for diagnostics and run results
+
+------
+
+## 2026-06-12
+
+### Core Hardening Integration
+
+Completed:
+
+- fast-forwarded feature commit `85188fa` into `main`
+- preserved fail-fast traversal after unexpected algorithm exceptions
+- finalized all started cell, packet, and run contexts on exception paths
+- kept lifecycle execution counters consistent
+- added deterministic deep-copying `to_dict()` serialization for diagnostics
+  and cell, packet, and run results
+- represented exceptions as stable serialized metadata
+
+Tests:
+
+- `python -m pytest -q tests/test_core`: 22 passed
+- `python -m pytest -q --basetemp .pytest-run-temp`: 106 passed
+- feature scope check: passed
+
+Result:
+
+- task status set to `MERGED`
+- no workflow-rule change; `99_multi_agent_workflow.md` remains unchanged
+- remaining end-to-end runner and integration work stays outside core

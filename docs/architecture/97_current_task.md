@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `core-hardening-v2`
-- Status: `READY`
+- Status: `MERGED`
 - Role: `core`
 - Branch: `codex/core`
 - Worktree: `rm_ref_core`
@@ -40,6 +40,7 @@ Harden RM core exception lifecycle finalization and stable result serialization.
 ## Notes
 
 - The RM Core Minimal Framework is already implemented and usable.
-- Keep fail-fast exception behavior while finalizing all started contexts.
-- Preserve existing object APIs while adding deterministic to_dict serialization.
-- Fast-forward the existing clean rm_ref_core worktree to the committed main baseline before implementation.
+- Merged feature commit 85188fa into main by fast-forward.
+- Fail-fast exception behavior now finalizes all started contexts with consistent execution counters.
+- Diagnostic and result models now provide deterministic deep-copying to_dict serialization.
+- Post-merge verification passed: 22 core tests and 106 full-suite tests.

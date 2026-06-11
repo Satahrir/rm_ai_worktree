@@ -2,7 +2,7 @@
 
 ## Snapshot Date
 
-2026-06-08
+2026-06-12
 
 ## Purpose
 
@@ -48,11 +48,18 @@ packet/cell traversal
 runtime input/output/config scopes
 diagnostic propagation
 structured cell/packet/run results
-algorithm exception capture
+fail-fast algorithm exception capture
+exception-safe cell/packet/run lifecycle finalization
+deterministic Diagnostic/CellOutput/PacketOutput/RunResult serialization
 ```
 
 The core is usable when callers construct `TestcaseConfig`, inject packet
 inputs, and provide an `Algorithm` implementation.
+
+When an algorithm raises unexpectedly, traversal stops immediately while all
+started contexts are finalized and execution counters remain consistent.
+Result `to_dict()` methods emit plain deterministic data, represent exceptions
+as stable metadata, and deep-copy mutable values.
 
 ### Schema, Config, And Validation
 
@@ -118,10 +125,13 @@ utilities, not as a complete production RM flow.
 
 ## Current Direction
 
-The next active task hardens the existing RM Core Minimal Framework. It should
-improve exception lifecycle finalization and stable result serialization
-without pulling schema, validation, packing, CLI, or business-algorithm logic
-into core.
+The `core-hardening-v2` task is merged. Core lifecycle finalization and stable
+result serialization are implemented without pulling schema, validation,
+packing, CLI, or business-algorithm logic into core.
+
+The next feature assignment has not yet been selected. The remaining outer
+runner, integration testing, packing, IO, observability, and concrete algorithm
+work stays listed as known limitations until separately implemented.
 
 ## Historical Note
 
