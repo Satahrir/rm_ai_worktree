@@ -1,5 +1,20 @@
 from copy import deepcopy
 
+from rm_ref.core.diagnostic import to_plain_value
+
+
+def _diagnostics_to_dict(diagnostics):
+    return [diagnostic.to_dict() for diagnostic in diagnostics]
+
+
+def _exception_to_dict(exception):
+    if exception is None:
+        return None
+    return {
+        "type": exception.__class__.__name__,
+        "message": str(exception),
+    }
+
 
 class CellOutput(object):
     def __init__(
@@ -18,6 +33,16 @@ class CellOutput(object):
         self.errors = list(errors or [])
         self.output = deepcopy(output or {})
 
+    def to_dict(self):
+        return {
+            "packet_index": self.packet_index,
+            "cell_index": self.cell_index,
+            "status": self.status,
+            "warnings": _diagnostics_to_dict(self.warnings),
+            "errors": _diagnostics_to_dict(self.errors),
+            "output": to_plain_value(self.output),
+        }
+
 
 class PacketOutput(object):
     def __init__(
@@ -35,6 +60,19 @@ class PacketOutput(object):
         self.errors = list(errors or [])
         self.runtime_summary = deepcopy(runtime_summary or {})
         self.cell_outputs = list(cell_outputs or [])
+
+    def to_dict(self):
+        return {
+            "packet_index": self.packet_index,
+            "status": self.status,
+            "warnings": _diagnostics_to_dict(self.warnings),
+            "errors": _diagnostics_to_dict(self.errors),
+            "runtime_summary": to_plain_value(self.runtime_summary),
+            "cell_outputs": [
+                cell_output.to_dict()
+                for cell_output in self.cell_outputs
+            ],
+        }
 
 
 class RunResult(object):
@@ -59,6 +97,22 @@ class RunResult(object):
         self.warnings = list(warnings or [])
         self.errors = list(errors or [])
         self.exception = exception
+
+    def to_dict(self):
+        return {
+            "status": self.status,
+            "exit_code": self.exit_code,
+            "case_name": self.case_name,
+            "algorithm_name": self.algorithm_name,
+            "summary": to_plain_value(self.summary),
+            "packet_outputs": [
+                packet_output.to_dict()
+                for packet_output in self.packet_outputs
+            ],
+            "warnings": _diagnostics_to_dict(self.warnings),
+            "errors": _diagnostics_to_dict(self.errors),
+            "exception": _exception_to_dict(self.exception),
+        }
 
 
 def build_cell_output(cell_ctx):
