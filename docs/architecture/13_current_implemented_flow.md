@@ -50,8 +50,7 @@ resolve -> validate -> convert -> inject payload -> execute
 The caller must currently connect these APIs manually. Nothing in
 `rm_ref.core.run_config()` requires the caller to resolve or validate first.
 
-There is also no `tests/test_integration/` directory and no test that crosses
-all implemented layers.
+There is no tracked integration test that crosses all implemented layers.
 
 ### Planned P1 Work
 
@@ -438,7 +437,7 @@ input_pkt_by_cc[cell_index] -> cell sample input
 
 However, `ResolvedConfig.to_core_config()` currently leaves this mapping empty
 because resolved configuration has no payload field. A caller must perform a
-separate payload assembly step before execution.
+separate payload preparation step before execution.
 
 There is no standard payload loader or injection API yet.
 
@@ -776,7 +775,9 @@ outer runner
   9. return a structured outer result
 ```
 
-The module name and exact outer result type are not yet implemented decisions.
+The outer orchestration package is designed as `rm_ref.runtime`. Expected case
+outcomes are represented by the designed `OrchestrationResult`; its
+implementation is still planned.
 
 ### Required Boundaries
 
@@ -812,7 +813,7 @@ P1 should prefer explicit injected dependencies for:
 
 ```text
 schema lookup
-payload assembly
+payload preparation
 algorithm construction or selection
 ```
 
@@ -901,7 +902,7 @@ The current implemented flow has these limitations:
 ```text
 no unified outer runner
 validation can be bypassed by direct core calls
-no standard payload loader or payload assembly API
+no standard payload loader or payload preparation API
 algorithm_name does not select an Algorithm instance
 no cross-layer integration test
 ValidationIssue and ValidationResult have no stable to_dict() API
@@ -913,97 +914,53 @@ Python 3.6.3 compatibility has not been verified by a dedicated audit
 
 These are implementation gaps, not implemented features.
 
-## 19. Open Questions
+## 19. P1 Design Questions
 
-P1 must resolve the following before implementation:
+Detailed question records, decisions, project evidence, ownership, and test
+requirements are maintained in:
 
 ```text
-1. Which outer package owns orchestration without colliding with core.runner?
-2. What structured outer result represents resolution, validation, and
-   execution outcomes?
-3. Does the outer runner receive a SchemaDefinition, a SchemaRegistry, or an
+docs/architecture/14_p1_design_questions.md
+```
+
+The current summary is:
+
+```text
+1. DECIDED: outer orchestration belongs to rm_ref.runtime, with runtime -> core
+   and no reverse dependency from core.
+2. DECIDED: OrchestrationResult represents expected setup, validation, and
+   execution outcomes without swallowing API misuse or framework bugs.
+3. OPEN: Does the outer runner receive a SchemaDefinition, a SchemaRegistry, or an
    injected schema lookup callable?
-4. Does it receive an Algorithm instance or an injected algorithm factory?
-5. What is the minimal payload injection contract before file IO exists?
-6. Should ValidationIssue and ValidationResult gain deterministic to_dict()
-   methods in P1 or a later observability task?
-7. How will Python 3.6.3 compatibility be verified in CI?
+4. OPEN: Does it receive an Algorithm instance or an injected algorithm factory?
+5. OPEN: What is the minimal payload injection contract before file IO exists?
+6. OPEN: P1 requires ValidationIssue and ValidationResult to_dict(); the
+   minimum serialized fields and rules remain undecided.
+7. OPEN: How will Python 3.6.3 compatibility be verified in CI?
 ```
 
-### 19.1 Payload Channel Model
+### 19.1 Payload Boundary
 
-Status: open question. No payload representation has been selected.
+Status: open question. Previous proposed answers have been withdrawn.
 
-Some channels accept one physical input channel, while other channels require
-multiple input channels, such as multiple antenna streams.
-
-The next discussion must distinguish:
+The only implemented facts are:
 
 ```text
-one payload object
-  from
-one physical input channel
+PacketConfig.input_pkt_by_cc stores packet input by cell index.
+The core pipeline exposes the selected value as CellContext input.samples.
+ResolvedConfig.to_core_config() does not populate input_pkt_by_cc.
 ```
 
-Multiple physical channels can be wrapped in one payload object, but they
-cannot generally be flattened into one sample sequence without also preserving:
+P1 still needs to decide:
 
 ```text
-channel boundaries
-channel or antenna identity
-channel ordering
-per-channel length
-sample alignment and synchronization
-layout or shape metadata
+1. What payload argument, if any, the outer orchestration API accepts.
+2. How external payload data maps to packets and cells.
+3. Which layer validates missing, extra, or malformed payload entries.
+4. Whether P1 only injects already-prepared data or also defines a preparation
+   interface.
+5. Which payload details remain opaque business data.
 ```
 
-The following candidate is only a discussion option, not an accepted design:
-
-```python
-payload_by_packet = {
-    0: {
-        0: {
-            "samples_by_channel": [
-                [1, 2, 3],
-                [10, 20, 30],
-            ]
-        }
-    }
-}
-```
-
-Under that option, a single-channel input would still use the same dimensional
-model:
-
-```python
-{
-    "samples_by_channel": [
-        [1, 2, 3]
-    ]
-}
-```
-
-Before selecting this model, the following questions must be answered:
-
-```text
-1. Are all multiple inputs homogeneous antenna/sample streams?
-2. Must channels always have equal lengths?
-3. Are samples at the same position guaranteed to be time-aligned?
-4. Is channel order sufficient, or must every channel carry an explicit id?
-5. Can one cell also require heterogeneous named inputs such as rx samples,
-   reference samples, channel estimates, or control data?
-6. Does payload belong to packet/cell/channel only, or are additional scopes
-   required?
-7. Should the runtime layer normalize single-channel input into a one-element
-   channel collection, or preserve the caller's original representation?
-8. How should the selected payload model map to the current core contract,
-   where PacketConfig.input_pkt_by_cc[cell_index] is exposed as
-   cell_ctx input.samples?
-```
-
-If every input is a homogeneous antenna stream, a channel collection may be
-sufficient. If heterogeneous input types are required, P1 needs a more general
-named-input payload model. This decision is deferred to the next discussion.
-
-Until these questions are decided, the current explicit layer APIs remain the
-authoritative implemented behavior.
+No `payload_by_packet`, named-input, channel, antenna, or sample-layout format
+is currently selected.
