@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `p1-current-flow-doc`
-- Status: `IN_PROGRESS`
+- Status: `REVIEW`
 - Role: `arch`
 - Branch: `codex/arch`
 - Worktree: `rm_ref_arch`
@@ -38,7 +38,9 @@ Document the currently implemented schema-to-result flow and identify the P1 orc
 - Distinguish implemented behavior, manual caller responsibilities, limitations, and P1 planned work.
 - Document the current lack of a unified resolve-validate-convert-run entry point.
 - Do not modify source code or tests in this documentation task.
-- Baseline document committed as 5f8ce09 in codex/arch.
-- Revise the payload boundary: payload_by_packet maps packet_index and cell_index to raw payload.
-- The outer runner only fills PacketConfig.input_pkt_by_cc and does not define samples, iq, bits, channel, or antenna payload formats.
-- The core pipeline and CellContext remain responsible for exposing the existing input.samples runtime key.
+- Architecture documentation committed as 9b62955 in codex/arch.
+- Question 1 decided: outer orchestration belongs to rm_ref.runtime with no reverse dependency from core.
+- Question 2 decided: expected case outcomes use OrchestrationResult while API misuse and framework bugs continue to raise.
+- Questions 3 through 7 remain open and are recorded with project facts, evaluation criteria, ownership, and required tests.
+- Payload format remains undecided; only existing input_pkt_by_cc and input.samples behavior is documented as implemented.
+- Scope check passed; documentation-only task, so tests were not run.
