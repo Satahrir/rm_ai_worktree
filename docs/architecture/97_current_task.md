@@ -4,43 +4,39 @@
 
 ## Assignment
 
-- Task: `core-hardening-v2`
-- Status: `MERGED`
-- Role: `core`
-- Branch: `codex/core`
-- Worktree: `rm_ref_core`
-- Prompt: `agents/core_hardening_agent_prompt.md`
+- Task: `p1-current-flow-doc`
+- Status: `REVIEW`
+- Role: `arch`
+- Branch: `codex/arch`
+- Worktree: `rm_ref_arch`
+- Prompt: `agents/arch_agent_prompt.md`
 
 ## Goal
 
-Harden RM core exception lifecycle finalization and stable result serialization.
+Document the currently implemented schema-to-result flow and identify the P1 orchestration and integration-test gaps.
 
 ## Allowed Paths
 
-- `src/rm_ref/core/`
-- `tests/test_core/`
+- `docs/architecture/`
 
 ## Forbidden Paths
 
-- `src/rm_ref/schema/`
-- `src/rm_ref/config/`
-- `src/rm_ref/validator/`
-- `src/rm_ref/packer/`
-- `src/rm_ref/algorithms/`
+- `src/`
+- `tests/`
 - `utils/`
 - `schema_defs/`
-- `docs/`
+- `scripts/`
+- `agents/`
 
 ## Required Checks
 
-- `python -m pytest -q tests/test_core`
-- `python -m pytest -q`
 - `python scripts/agent_workflow.py check-scope`
 
 ## Notes
 
-- The RM Core Minimal Framework is already implemented and usable.
-- Merged feature commit 85188fa into main by fast-forward.
-- Fail-fast exception behavior now finalizes all started contexts with consistent execution counters.
-- Diagnostic and result models now provide deterministic deep-copying to_dict serialization.
-- Post-merge verification passed: 22 core tests and 106 full-suite tests.
+- Describe current code and tests, not only intended architecture.
+- Distinguish implemented behavior, manual caller responsibilities, limitations, and P1 planned work.
+- Document the current lack of a unified resolve-validate-convert-run entry point.
+- Do not modify source code or tests in this documentation task.
+- Review candidate: docs/architecture/13_current_implemented_flow.md in codex/arch.
+- Scope check passed; documentation-only task, so tests were not run.

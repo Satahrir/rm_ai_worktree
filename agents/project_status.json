@@ -4,57 +4,48 @@
   "integration_branch": "main",
   "integration_worktree": "rm_ref_main",
   "active_task": {
-    "id": "core-hardening-v2",
-    "status": "MERGED",
-    "goal": "Harden RM core exception lifecycle finalization and stable result serialization.",
-    "role": "core",
-    "branch": "codex/core",
-    "worktree": "rm_ref_core",
-    "prompt": "agents/core_hardening_agent_prompt.md",
+    "id": "p1-current-flow-doc",
+    "status": "REVIEW",
+    "goal": "Document the currently implemented schema-to-result flow and identify the P1 orchestration and integration-test gaps.",
+    "role": "arch",
+    "branch": "codex/arch",
+    "worktree": "rm_ref_arch",
+    "prompt": "agents/arch_agent_prompt.md",
     "allowed_paths": [
-      "src/rm_ref/core/",
-      "tests/test_core/"
+      "docs/architecture/"
     ],
     "forbidden_paths": [
-      "src/rm_ref/schema/",
-      "src/rm_ref/config/",
-      "src/rm_ref/validator/",
-      "src/rm_ref/packer/",
-      "src/rm_ref/algorithms/",
+      "src/",
+      "tests/",
       "utils/",
       "schema_defs/",
-      "docs/"
+      "scripts/",
+      "agents/"
     ],
     "required_files": [
       "AGENTS.md",
       "agents/README.md",
       "agents/project_status.json",
-      "agents/core_hardening_agent_prompt.md",
+      "agents/arch_agent_prompt.md",
       "docs/architecture/97_current_task.md",
       "docs/architecture/99_multi_agent_workflow.md",
-      "scripts/AGENTS.md",
       "scripts/agent_workflow.py",
-      "src/AGENTS.md",
-      "src/rm_ref/AGENTS.md",
-      "src/rm_ref/core/AGENTS.md",
-      "tests/AGENTS.md",
-      "src/rm_ref/core/runner.py",
-      "src/rm_ref/core/pipeline.py",
-      "src/rm_ref/core/result.py",
-      "src/rm_ref/core/diagnostic.py",
-      "tests/test_core/test_runner.py"
+      "docs/AGENTS.md",
+      "src/rm_ref/config/resolver.py",
+      "src/rm_ref/config/resolved_config.py",
+      "src/rm_ref/validator/validator.py",
+      "src/rm_ref/core/runner.py"
     ],
     "checks": [
-      "python -m pytest -q tests/test_core",
-      "python -m pytest -q",
       "python scripts/agent_workflow.py check-scope"
     ],
     "notes": [
-      "The RM Core Minimal Framework is already implemented and usable.",
-      "Merged feature commit 85188fa into main by fast-forward.",
-      "Fail-fast exception behavior now finalizes all started contexts with consistent execution counters.",
-      "Diagnostic and result models now provide deterministic deep-copying to_dict serialization.",
-      "Post-merge verification passed: 22 core tests and 106 full-suite tests."
+      "Describe current code and tests, not only intended architecture.",
+      "Distinguish implemented behavior, manual caller responsibilities, limitations, and P1 planned work.",
+      "Document the current lack of a unified resolve-validate-convert-run entry point.",
+      "Do not modify source code or tests in this documentation task.",
+      "Review candidate: docs/architecture/13_current_implemented_flow.md in codex/arch.",
+      "Scope check passed; documentation-only task, so tests were not run."
     ]
   }
 }
