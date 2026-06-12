@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `p1-current-flow-doc`
-- Status: `REVIEW`
+- Status: `IN_PROGRESS`
 - Role: `arch`
 - Branch: `codex/arch`
 - Worktree: `rm_ref_arch`
@@ -38,5 +38,7 @@ Document the currently implemented schema-to-result flow and identify the P1 orc
 - Distinguish implemented behavior, manual caller responsibilities, limitations, and P1 planned work.
 - Document the current lack of a unified resolve-validate-convert-run entry point.
 - Do not modify source code or tests in this documentation task.
-- Review candidate: docs/architecture/13_current_implemented_flow.md in codex/arch.
-- Scope check passed; documentation-only task, so tests were not run.
+- Baseline document committed as 5f8ce09 in codex/arch.
+- Revise the payload boundary: payload_by_packet maps packet_index and cell_index to raw payload.
+- The outer runner only fills PacketConfig.input_pkt_by_cc and does not define samples, iq, bits, channel, or antenna payload formats.
+- The core pipeline and CellContext remain responsible for exposing the existing input.samples runtime key.
