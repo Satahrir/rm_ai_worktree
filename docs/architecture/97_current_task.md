@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `core-exception-ownership-v1`
-- Status: `IN_PROGRESS`
+- Status: `REVIEW`
 - Role: `core`
 - Branch: `codex/core`
 - Worktree: `rm_ref_core`
@@ -52,3 +52,8 @@ Implement the designed core exception-ownership and lifecycle cleanup contract w
 - Framework and finalizer failures must propagate rather than becoming RunResult.
 - The callback trust-boundary limitation is accepted and must remain documented in behavior and tests.
 - Do not modify runtime, schema, config, validator, payload, CLI, workflow, or architecture files.
+- Feature implementation committed as 6b9b2cc on codex/core.
+- Focused tests passed: 48.
+- Full regression tests passed: 132.
+- Scope check and git diff check passed.
+- Independent review completed with no blocking findings.
