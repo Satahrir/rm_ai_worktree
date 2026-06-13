@@ -201,3 +201,25 @@ Result:
 - callback trust-boundary limitation remains documented
 - remaining P1 schema, algorithm, payload, validation serialization, and
   Python 3.6 verification questions remain open
+
+### RMContext Cleanup Stack Declaration Integration
+
+Completed:
+
+- merged feature commit `1b00c8b` into `main` as `cca9674`
+- declared `_cleanup_stack` in `RMContext.__init__`
+- preserved lifecycle ownership without introducing a circular import
+- added focused coverage for the declared runtime attribute
+
+Tests:
+
+- `python -m pytest -q tests/test_core`: 49 passed
+- `python -m pytest -q`: 133 passed
+- feature scope check: passed
+- review: no blocking findings
+
+Result:
+
+- task status set to `MERGED`
+- IDE static analysis can resolve `RMContext._cleanup_stack`
+- lifecycle and exception behavior remain unchanged

@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "core-cleanup-stack-declaration-v1",
-    "status": "REVIEW",
+    "status": "MERGED",
     "goal": "Declare the lifecycle cleanup stack on RMContext so static analysis recognizes the framework-owned runtime attribute.",
     "role": "core",
     "branch": "codex/core",
@@ -61,7 +61,9 @@
       "Feature implementation committed as 1b00c8b on codex/core.",
       "Focused core tests passed: 49.",
       "Full regression tests passed: 133.",
-      "Scope check and git diff check passed."
+      "Scope check and git diff check passed.",
+      "Review completed with no blocking findings.",
+      "Merged into main as cca9674."
     ]
   }
 }

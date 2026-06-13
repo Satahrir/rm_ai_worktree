@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `core-cleanup-stack-declaration-v1`
-- Status: `REVIEW`
+- Status: `MERGED`
 - Role: `core`
 - Branch: `codex/core`
 - Worktree: `rm_ref_core`
@@ -54,3 +54,5 @@ Declare the lifecycle cleanup stack on RMContext so static analysis recognizes t
 - Focused core tests passed: 49.
 - Full regression tests passed: 133.
 - Scope check and git diff check passed.
+- Review completed with no blocking findings.
+- Merged into main as cca9674.
