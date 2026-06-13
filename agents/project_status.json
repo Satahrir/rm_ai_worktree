@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "core-cleanup-stack-declaration-v1",
-    "status": "READY",
+    "status": "IN_PROGRESS",
     "goal": "Declare the lifecycle cleanup stack on RMContext so static analysis recognizes the framework-owned runtime attribute.",
     "role": "core",
     "branch": "codex/core",
