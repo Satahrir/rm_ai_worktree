@@ -4,46 +4,51 @@
 
 ## Assignment
 
-- Task: `p1-current-flow-doc`
-- Status: `MERGED`
-- Role: `arch`
-- Branch: `codex/arch`
-- Worktree: `rm_ref_arch`
-- Prompt: `agents/arch_agent_prompt.md`
+- Task: `core-exception-ownership-v1`
+- Status: `READY`
+- Role: `core`
+- Branch: `codex/core`
+- Worktree: `rm_ref_core`
+- Prompt: `agents/core_exception_ownership_agent_prompt.md`
 
 ## Goal
 
-Document the currently implemented schema-to-result flow and identify the P1 orchestration and integration-test gaps.
+Implement the designed core exception-ownership and lifecycle cleanup contract with focused fault-injection coverage.
 
 ## Allowed Paths
 
-- `docs/architecture/`
+- `src/rm_ref/core/`
+- `tests/test_core/`
 
 ## Forbidden Paths
 
-- `src/`
-- `tests/`
+- `src/rm_ref/schema/`
+- `src/rm_ref/config/`
+- `src/rm_ref/validator/`
+- `src/rm_ref/packer/`
+- `src/rm_ref/algorithms/`
+- `src/rm_ref/io/`
+- `src/rm_ref/observability/`
+- `tests/test_schema/`
+- `tests/test_config/`
+- `tests/test_validator/`
 - `utils/`
 - `schema_defs/`
+- `docs/`
 - `scripts/`
 - `agents/`
 
 ## Required Checks
 
+- `python -m pytest -q tests/test_core`
+- `python -m pytest -q`
 - `python scripts/agent_workflow.py check-scope`
 
 ## Notes
 
-- Describe current code and tests, not only intended architecture.
-- Distinguish implemented behavior, manual caller responsibilities, limitations, and P1 planned work.
-- Document the current lack of a unified resolve-validate-convert-run entry point.
-- Do not modify source code or tests in this documentation task.
-- Architecture documentation committed as a230f3d in codex/arch and merged into main as ce41a0d.
-- Question 1 decided: outer orchestration belongs to rm_ref.runtime with no reverse dependency from core.
-- Question 2 decided: expected case outcomes use OrchestrationResult while API misuse and framework bugs continue to raise.
-- Question 2 exception ownership is now fully designed: callback trust boundary, lifecycle state, cleanup fail-fast behavior, exception priority, and required fault-injection tests are documented.
-- The reviewed source answer is archived as docs/architecture/archive/p1_question2_exception_ownership_answer.txt.
-- Questions 3 through 7 remain open and are recorded with project facts, evaluation criteria, ownership, and required tests.
-- Payload format remains undecided; only existing input_pkt_by_cc and input.samples behavior is documented as implemented.
-- Scope check passed; documentation-only task, so tests were not run.
-- The next implementation-ready task is the separately scoped core exception-ownership and lifecycle hardening work.
+- Follow the decided Core Exception Ownership Contract in docs/architecture/14_p1_design_questions.md.
+- Keep core status values unchanged and do not add core EXECUTION_ERROR.
+- A returned RunResult means lifecycle cleanup completed without framework failure.
+- Framework and finalizer failures must propagate rather than becoming RunResult.
+- The callback trust-boundary limitation is accepted and must remain documented in behavior and tests.
+- Do not modify runtime, schema, config, validator, payload, CLI, workflow, or architecture files.
