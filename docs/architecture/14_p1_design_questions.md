@@ -292,12 +292,13 @@ implementation failures.
 Status:
 
 ```text
-DECIDED, NOT IMPLEMENTED
+IMPLEMENTED
 ```
 
-The current `core.run_config()` catches every `Exception` raised by
-`execute_pipeline()`. This can convert lifecycle or framework defects into a
-`RunResult`. P1 must not rely on that behavior.
+Before `core-exception-ownership-v1`, `core.run_config()` caught every
+`Exception` raised by `execute_pipeline()`. The implemented runner now catches
+only `AlgorithmExecutionError`; framework, lifecycle, result-building, and
+serialization failures propagate.
 
 The designed boundary is:
 
@@ -458,9 +459,9 @@ exception. It must never contain a framework or lifecycle exception.
 Serialization must emit stable exception metadata rather than a raw exception
 object.
 
-### Core Implementation Consequences
+### Implemented Core Behavior
 
-The future core-hardening task must:
+The merged core implementation:
 
 ```text
 remove the broad except Exception from core.run_config()
@@ -472,8 +473,8 @@ stop traversal immediately after a finalizer failure
 preserve multiple finalizer errors on Python 3.6 without ExceptionGroup
 ```
 
-These are designed changes. The current implementation still uses broad runner
-exception capture and does not implement this lifecycle state machine.
+This behavior was implemented by feature commit `6b9b2cc` and merged into
+`main` as `4dfdab1`.
 
 The reviewed design input is archived at:
 

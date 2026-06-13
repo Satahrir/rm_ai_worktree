@@ -170,3 +170,34 @@ Result:
 - core exception ownership is implementation-ready as a separate scoped task
 - schema, algorithm, payload, validation serialization, and Python 3.6
   verification questions remain open
+
+------
+
+## 2026-06-14
+
+### Core Exception Ownership Integration
+
+Completed:
+
+- merged feature commit `6b9b2cc` into `main` as `4dfdab1`
+- removed broad exception capture from `core.run_config()`
+- implemented the algorithm callback trust boundary
+- added lifecycle cleanup states and one-time cleanup stack behavior
+- stopped later business traversal after finalizer failure
+- preserved primary, diagnostic-recording, and all finalizer errors
+- kept `BaseException` objects unmodified while preserving cleanup failures
+- added focused fault-injection coverage
+
+Tests:
+
+- `python -m pytest -q tests/test_core`: 48 passed
+- `python -m pytest -q`: 132 passed
+- feature scope check: passed
+- independent review: no blocking findings
+
+Result:
+
+- task status set to `MERGED`
+- callback trust-boundary limitation remains documented
+- remaining P1 schema, algorithm, payload, validation serialization, and
+  Python 3.6 verification questions remain open

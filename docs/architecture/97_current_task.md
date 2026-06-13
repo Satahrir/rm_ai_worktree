@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `core-exception-ownership-v1`
-- Status: `REVIEW`
+- Status: `MERGED`
 - Role: `core`
 - Branch: `codex/core`
 - Worktree: `rm_ref_core`
@@ -57,3 +57,4 @@ Implement the designed core exception-ownership and lifecycle cleanup contract w
 - Full regression tests passed: 132.
 - Scope check and git diff check passed.
 - Independent review completed with no blocking findings.
+- Merged into main as 4dfdab1.

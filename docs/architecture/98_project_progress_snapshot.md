@@ -140,11 +140,17 @@ rm_ref.runtime
 OrchestrationResult
 ```
 
-The supporting core exception-ownership contract is also designed but not
-implemented. The next implementation-ready task is a separately scoped core
-hardening change that removes broad runner exception capture, introduces the
-callback trust boundary and cleanup lifecycle state, and adds fault-injection
-tests.
+The supporting core exception-ownership contract is implemented. Core now:
+
+```text
+catches algorithm-owned callback failures at the plugin boundary
+propagates explicit framework failures
+uses cleanup lifecycle states to prevent duplicate finalization
+stops business traversal after finalizer failure
+attempts required outer cleanup
+preserves the primary error and all finalizer failures
+returns RunResult only when framework cleanup succeeds
+```
 
 Schema injection, algorithm injection, payload boundaries, validation
 serialization details, and Python 3.6.3 verification remain open architecture

@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "core-exception-ownership-v1",
-    "status": "REVIEW",
+    "status": "MERGED",
     "goal": "Implement the designed core exception-ownership and lifecycle cleanup contract with focused fault-injection coverage.",
     "role": "core",
     "branch": "codex/core",
@@ -67,7 +67,8 @@
       "Focused tests passed: 48.",
       "Full regression tests passed: 132.",
       "Scope check and git diff check passed.",
-      "Independent review completed with no blocking findings."
+      "Independent review completed with no blocking findings.",
+      "Merged into main as 4dfdab1."
     ]
   }
 }
