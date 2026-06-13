@@ -287,6 +287,219 @@ Payload preparation or injection failures are not classified by this decision.
 Question 5 must distinguish expected payload data errors from injector
 implementation failures.
 
+### Core Exception Ownership Contract
+
+Status:
+
+```text
+DECIDED, NOT IMPLEMENTED
+```
+
+The current `core.run_config()` catches every `Exception` raised by
+`execute_pipeline()`. This can convert lifecycle or framework defects into a
+`RunResult`. P1 must not rely on that behavior.
+
+The designed boundary is:
+
+```text
+run_config() returns RunResult
+  -> core execution and lifecycle cleanup completed without framework failure
+  -> runtime maps exit_code != 0 to EXECUTION_ERROR
+
+run_config() raises
+  -> API misuse, setup failure, framework failure, lifecycle failure, or
+     result-building failure
+  -> runtime does not convert it to EXECUTION_ERROR
+```
+
+Core status remains:
+
+```text
+OK
+WARNING
+ERROR
+SKIPPED
+```
+
+`EXECUTION_ERROR` belongs only to `OrchestrationResult`. A future optional
+`RunResult.failure_kind` may distinguish:
+
+```text
+REPORTED_ERROR
+  The algorithm recorded an error diagnostic and returned normally.
+
+ALGORITHM_EXCEPTION
+  A non-framework exception escaped Algorithm.execute_cell().
+```
+
+Runtime classification must use `RunResult.exit_code`, not exception class or
+the presence of a raw exception object.
+
+### Callback Trust Boundary
+
+`Algorithm.execute_cell(cell_ctx)` is a plugin trust boundary.
+
+```text
+FrameworkError escaping the callback
+  framework-owned; propagate
+
+any other Exception escaping the callback
+  algorithm-owned; wrap as AlgorithmExecutionError
+
+BaseException such as KeyboardInterrupt or SystemExit
+  do not catch
+```
+
+This classification has an explicit limitation. Python cannot reliably infer
+whether a bare `KeyError`, `AttributeError`, or similar exception inside the
+callback stack originated in algorithm code or in a framework API defect. If a
+framework defect crosses this boundary without being explicitly marked as
+`FrameworkError`, P1 will classify it as an algorithm failure.
+
+Core APIs must therefore use explicit exception ownership:
+
+```text
+FrameworkError
+  framework implementation or lifecycle failure
+
+AlgorithmContextUsageError
+  algorithm misuse of a context API; algorithm-owned
+
+AlgorithmExecutionError
+  internal wrapper used to carry an algorithm-owned callback failure
+```
+
+P1 must not use traceback paths, exception messages, or ordinary Python
+exception classes to guess ownership.
+
+### Lifecycle Contract
+
+The pipeline remains fail-fast:
+
+```text
+1. Any prepare, algorithm, diagnostic-recording, or finalize failure stops
+   further business traversal.
+2. The pipeline still attempts required outer cleanup for every active context.
+3. Cleanup records all finalizer failures without retrying a failed finalizer.
+4. Any finalizer failure prevents RunResult creation.
+5. LifecycleFinalizationError becomes the top-level exception and preserves
+   the primary error plus all finalizer errors.
+```
+
+The minimum lifecycle states are:
+
+```text
+NEW
+ACTIVE
+FINALIZING
+FINALIZED
+FINALIZE_FAILED
+```
+
+The minimum transition rules are:
+
+```text
+NEW -> ACTIVE
+  Context is registered on the cleanup stack before risky initialization.
+
+ACTIVE -> FINALIZING -> FINALIZED
+  Normal one-time cleanup.
+
+ACTIVE -> FINALIZING -> FINALIZE_FAILED
+  Cleanup failed; record the error and never retry that context.
+```
+
+P1 keeps the existing public `prepare_run()`, `prepare_packet()`, and
+`prepare_cell()` entry points. Their internal order must become:
+
+```text
+create context
+register context
+push cleanup item and mark ACTIVE
+perform risky initialization
+return context
+```
+
+This lets cleanup find a context when preparation fails after activation.
+Public create/register/prepare APIs are not required for P1.
+
+### Exception Priority
+
+The designed priority is:
+
+```text
+1. LifecycleFinalizationError
+2. DiagnosticRecordingError
+3. FrameworkError, prepare failure, or unexpected framework exception
+4. AlgorithmExecutionError
+5. No exception; build RunResult from diagnostics
+```
+
+Required preservation rules are:
+
+```text
+algorithm exception only
+  runner catches AlgorithmExecutionError and returns RunResult(ERROR)
+
+algorithm exception plus diagnostic-recording failure
+  propagate DiagnosticRecordingError
+  preserve the original algorithm exception and recording exception
+
+any primary failure plus one or more finalizer failures
+  propagate LifecycleFinalizationError
+  preserve the primary failure and every finalizer failure
+
+reported algorithm error plus finalizer failure
+  propagate LifecycleFinalizationError; do not return RunResult
+```
+
+`RunResult.exception`, if retained, may contain only the original algorithm
+exception. It must never contain a framework or lifecycle exception.
+Serialization must emit stable exception metadata rather than a raw exception
+object.
+
+### Core Implementation Consequences
+
+The future core-hardening task must:
+
+```text
+remove the broad except Exception from core.run_config()
+make runner catch only AlgorithmExecutionError
+catch Exception only around Algorithm.execute_cell()
+propagate FrameworkError from the callback boundary
+introduce cleanup-stack lifecycle handling
+stop traversal immediately after a finalizer failure
+preserve multiple finalizer errors on Python 3.6 without ExceptionGroup
+```
+
+These are designed changes. The current implementation still uses broad runner
+exception capture and does not implement this lifecycle state machine.
+
+The reviewed design input is archived at:
+
+```text
+docs/architecture/archive/p1_question2_exception_ownership_answer.txt
+```
+
+### Core Fault-Injection Tests
+
+Required tests include:
+
+```text
+reported error -> RunResult(ERROR), no exception
+algorithm exception -> RunResult(ERROR), original exception preserved
+FrameworkError from callback -> propagate
+bare callback KeyError -> algorithm failure under the documented trust boundary
+prepare failure -> propagate after cleanup
+cell finalizer failure -> stop later cells and clean packet/run
+packet finalizer failure -> stop later packets and clean run
+multiple finalizer failures -> preserve every failure
+algorithm exception plus finalizer failure -> LifecycleFinalizationError
+diagnostic-recording failure -> DiagnosticRecordingError
+diagnostic-recording plus finalizer failure -> LifecycleFinalizationError
+result construction and serialization failures -> propagate
+```
+
 ### API Boundary
 
 This decision defines result behavior, not the final `run()` signature.

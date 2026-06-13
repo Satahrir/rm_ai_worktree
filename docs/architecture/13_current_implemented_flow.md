@@ -929,7 +929,10 @@ The current summary is:
 1. DECIDED: outer orchestration belongs to rm_ref.runtime, with runtime -> core
    and no reverse dependency from core.
 2. DECIDED: OrchestrationResult represents expected setup, validation, and
-   execution outcomes without swallowing API misuse or framework bugs.
+   execution outcomes without swallowing API misuse or framework bugs. The
+   supporting core exception-ownership and lifecycle contract is designed but
+   not implemented: a returned RunResult means framework cleanup succeeded,
+   while framework and finalizer failures propagate.
 3. OPEN: Does the outer runner receive a SchemaDefinition, a SchemaRegistry, or an
    injected schema lookup callable?
 4. OPEN: Does it receive an Algorithm instance or an injected algorithm factory?
