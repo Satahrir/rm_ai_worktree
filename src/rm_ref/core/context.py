@@ -132,6 +132,7 @@ class RMContext(_RuntimeContext):
         self.cfg = cfg
         self.packet_contexts = []
         self.packet_context_by_idx = {}
+        self._cleanup_stack = None
 
 
 class PacketContext(_RuntimeContext):
