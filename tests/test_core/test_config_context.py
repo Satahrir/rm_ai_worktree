@@ -6,6 +6,7 @@ from rm_ref.core.config import (
     PacketConfig,
     TestcaseConfig,
 )
+from rm_ref.core.context import RMContext
 from rm_ref.core.errors import DuplicateIndexError
 from rm_ref.core.lifecycle import build_context_tree
 
@@ -53,6 +54,12 @@ def test_duplicate_indexes_are_rejected():
 
     with pytest.raises(DuplicateIndexError, match="duplicate packet_index 5"):
         TestcaseConfig(packets=[PacketConfig(5), PacketConfig(5)])
+
+
+def test_rm_context_declares_cleanup_stack_attribute():
+    rm_ctx = RMContext(TestcaseConfig())
+
+    assert rm_ctx._cleanup_stack is None
 
 
 def test_context_tree_preserves_links_and_prepares_runtime():
