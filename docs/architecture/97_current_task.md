@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `core-exception-ownership-v1`
-- Status: `READY`
+- Status: `IN_PROGRESS`
 - Role: `core`
 - Branch: `codex/core`
 - Worktree: `rm_ref_core`

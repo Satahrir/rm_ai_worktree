@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "core-exception-ownership-v1",
-    "status": "READY",
+    "status": "IN_PROGRESS",
     "goal": "Implement the designed core exception-ownership and lifecycle cleanup contract with focused fault-injection coverage.",
     "role": "core",
     "branch": "codex/core",
