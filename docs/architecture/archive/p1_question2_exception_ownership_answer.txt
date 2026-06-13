@@ -1,0 +1,883 @@
+下面只修订你指出的实现级缺口，不再展开已决定的 status / exit_code / failure_kind 模型。
+
+---
+
+# 1. callback 边界的诚实契约
+
+必须承认一个限制：
+
+> **core 无法自动、可靠地区分 callback 调用栈内任意 `AttributeError / KeyError / ValueError / RuntimeError` 的真实所有权。**
+
+例如：
+
+```python
+algorithm.execute_cell(cell_ctx)
+```
+
+内部出现 `KeyError`，它可能来自：
+
+```text
+1. 算法自己 raise KeyError
+2. 算法错误使用 CellContext API
+3. CellContext API 内部 framework bug
+```
+
+单靠异常类型、traceback、message 都不能稳定判断。
+
+因此 P1 契约应写成：
+
+```text
+Algorithm.execute_cell(cell_ctx) 是 plugin trust boundary。
+
+从该边界逃出的 FrameworkError 及其子类，视为 framework-owned，
+必须继续传播。
+
+从该边界逃出的非 FrameworkError 的 Exception，视为 algorithm-owned，
+转换为 AlgorithmExecutionError，并最终生成 RunResult(ERROR)。
+
+如果 framework 内部 bug 以裸 AttributeError / KeyError / IndexError 等形式
+穿过 callback 边界，而没有被 core 显式标记为 FrameworkError，那么 P1 实现
+会把它归类为 algorithm failure。这是信任边界的已知局限，不声称能自动识别。
+```
+
+要让 framework bug 可靠传播，唯一可实现的机制是：
+
+```text
+core 自己的 API 必须显式维护异常所有权。
+```
+
+也就是：
+
+```python
+# framework-owned
+raise FrameworkError(...)
+
+# algorithm misuse of context API
+raise AlgorithmContextUsageError(...)
+```
+
+其中：
+
+```text
+FrameworkError -> 继续抛出
+AlgorithmContextUsageError -> 非 FrameworkError，算 algorithm failure
+```
+
+P1 不建议用 traceback 路径、异常 message、自动包裹所有 context API 异常来猜测归属。那会制造“看似智能但不可证明”的分类逻辑。
+
+---
+
+# 2. 修订后的 fail-fast 控制流
+
+规则收敛为：
+
+```text
+1. 任一 prepare / algorithm / finalize 失败后，立即停止后续业务遍历。
+2. 停止业务遍历后，仍清理 cleanup stack 上所有已 started context。
+3. cleanup 期间继续收集多个 finalizer 异常。
+4. 如果存在任何 finalizer 异常，最终抛 LifecycleFinalizationError。
+5. 如果没有 finalizer 异常，则：
+   - AlgorithmExecutionError 交给 runner 转 RunResult(ERROR)
+   - FrameworkError / prepare failure / diagnostic failure 继续抛出
+```
+
+关键修正点是：
+
+> **finalize_cell 失败后不能继续跑下一个 cell。**
+
+finalizer 失败不是普通 diagnostic，它说明 lifecycle 已经不可信，应立刻停止业务遍历，只做 cleanup。
+
+---
+
+# 3. 基于现有 API 的 P1 最小重构方案
+
+当前 API 是：
+
+```python
+rm_ctx = prepare_run(cfg)
+packet_ctx = prepare_packet(rm_ctx, packet_cfg)
+cell_ctx = prepare_cell(packet_ctx, cell_cfg)
+execute_pipeline(rm_ctx, algorithm)
+```
+
+P1 最小修改建议：
+
+## 不拆 public API
+
+暂时不要公开拆成：
+
+```python
+create_packet_context()
+register_packet_context()
+prepare_packet_context()
+```
+
+这会扩大改动面，也会影响测试和现有调用方式。
+
+## 修改 `prepare_*` 内部顺序
+
+保持外部签名不变，但内部改成：
+
+```text
+create context
+register to owner
+push cleanup stack
+mark ACTIVE
+do risky initialization
+return context
+```
+
+也就是说，`prepare_packet()` / `prepare_cell()` 即使在初始化中途失败，只要 context 已经进入 ACTIVE，就已经在 cleanup stack 里，pipeline 可以在异常后找到并 finalize。
+
+P1 最小契约：
+
+```text
+prepare_* 返回前可以失败。
+如果失败发生在 context ACTIVE 之后，cleanup stack 必须能找到该 context。
+如果失败发生在 context 创建前，则没有 context 需要 finalize。
+```
+
+P2 再考虑把内部拆为 create/register/prepare，使边界更清晰。
+
+---
+
+# 4. 单一 `_started` 标志不够
+
+单一 `_started = True/False` 不足以处理：
+
+```text
+double-finalize
+finalizer 失败后被重试
+finalizer 成功后重复计数
+finalizer 失败后状态不明
+```
+
+P1 最小生命周期状态建议：
+
+```python
+LIFECYCLE_NEW = "NEW"
+LIFECYCLE_ACTIVE = "ACTIVE"
+LIFECYCLE_FINALIZING = "FINALIZING"
+LIFECYCLE_FINALIZED = "FINALIZED"
+LIFECYCLE_FINALIZE_FAILED = "FINALIZE_FAILED"
+```
+
+规则：
+
+```text
+NEW:
+  已创建但还不需要 cleanup。
+
+ACTIVE:
+  已注册到 cleanup stack，必须 finalize。
+
+FINALIZING:
+  正在 finalize，用于防止递归或重复 finalize。
+
+FINALIZED:
+  finalize 成功，禁止再次 finalize。
+
+FINALIZE_FAILED:
+  finalize 失败，禁止重试。
+```
+
+P1 幂等规则：
+
+```text
+cleanup stack 中的 item 只弹出一次。
+finalizer 成功或失败后都不重试。
+finalizer 失败后设置 FINALIZE_FAILED，并记录错误。
+后续 cleanup 继续清理外层 context，但不会重新清理失败 context。
+```
+
+---
+
+# 5. 接近可运行的 Python 3.6 伪代码
+
+## 5.1 errors.py
+
+```python
+class CoreError(Exception):
+    pass
+
+
+class FrameworkError(CoreError):
+    pass
+
+
+class AlgorithmContextUsageError(CoreError):
+    """Algorithm misused context API. Treated as algorithm-owned."""
+
+
+class AlgorithmExecutionError(CoreError):
+    def __init__(self, message, original_exception=None,
+                 packet_index=None, cell_index=None, algorithm_name=None):
+        CoreError.__init__(self, message)
+        self.original_exception = original_exception
+        self.packet_index = packet_index
+        self.cell_index = cell_index
+        self.algorithm_name = algorithm_name
+
+
+class DiagnosticRecordingError(FrameworkError):
+    def __init__(self, message, primary_error=None, recording_error=None):
+        FrameworkError.__init__(self, message)
+        self.primary_error = primary_error
+        self.recording_error = recording_error
+
+
+class LifecycleFinalizationError(FrameworkError):
+    def __init__(self, message, primary_error=None, finalizer_errors=None):
+        FrameworkError.__init__(self, message)
+        self.primary_error = primary_error
+        self.finalizer_errors = finalizer_errors or []
+
+
+class _StopBusinessTraversal(Exception):
+    """Internal sentinel. Not exposed as public API."""
+```
+
+---
+
+## 5.2 lifecycle state
+
+```python
+LIFECYCLE_NEW = "NEW"
+LIFECYCLE_ACTIVE = "ACTIVE"
+LIFECYCLE_FINALIZING = "FINALIZING"
+LIFECYCLE_FINALIZED = "FINALIZED"
+LIFECYCLE_FINALIZE_FAILED = "FINALIZE_FAILED"
+
+
+def _set_lifecycle_state(ctx, state):
+    ctx._lifecycle_state = state
+
+
+def _get_lifecycle_state(ctx):
+    return getattr(ctx, "_lifecycle_state", LIFECYCLE_NEW)
+```
+
+---
+
+## 5.3 cleanup stack
+
+```python
+class FinalizerErrorRecord(object):
+    def __init__(self, scope, identity, exception):
+        self.scope = scope
+        self.identity = identity
+        self.exception = exception
+
+
+class CleanupItem(object):
+    def __init__(self, scope, identity, ctx, finalizer):
+        self.scope = scope
+        self.identity = identity
+        self.ctx = ctx
+        self.finalizer = finalizer
+
+
+class CleanupStack(object):
+    def __init__(self):
+        self._items = []
+        self.finalizer_errors = []
+
+    def push(self, scope, identity, ctx, finalizer):
+        state = _get_lifecycle_state(ctx)
+        if state != LIFECYCLE_NEW:
+            raise FrameworkError("Context is already started: %s" % scope)
+
+        _set_lifecycle_state(ctx, LIFECYCLE_ACTIVE)
+        self._items.append(CleanupItem(scope, identity, ctx, finalizer))
+
+    def close_through(self, target_ctx):
+        """Close stack from top through target_ctx.
+
+        Returns True if all finalizers succeeded.
+        Returns False if any finalizer failed.
+        Raises FrameworkError if target_ctx is not on stack.
+        """
+        ok = True
+        found = False
+
+        while self._items:
+            item = self._items.pop()
+            item_ok = self._close_item(item)
+            if not item_ok:
+                ok = False
+
+            if item.ctx is target_ctx:
+                found = True
+                break
+
+        if not found:
+            raise FrameworkError("Target context not found in cleanup stack")
+
+        return ok
+
+    def close_all_remaining(self):
+        ok = True
+
+        while self._items:
+            item = self._items.pop()
+            item_ok = self._close_item(item)
+            if not item_ok:
+                ok = False
+
+        return ok
+
+    def _close_item(self, item):
+        ctx = item.ctx
+        state = _get_lifecycle_state(ctx)
+
+        if state == LIFECYCLE_FINALIZED:
+            return True
+
+        if state == LIFECYCLE_FINALIZE_FAILED:
+            return True
+
+        if state != LIFECYCLE_ACTIVE:
+            self.finalizer_errors.append(
+                FinalizerErrorRecord(
+                    item.scope,
+                    item.identity,
+                    FrameworkError("Invalid lifecycle state before finalize: %s" % state),
+                )
+            )
+            return False
+
+        _set_lifecycle_state(ctx, LIFECYCLE_FINALIZING)
+
+        try:
+            item.finalizer(ctx)
+        except Exception as exc:
+            _set_lifecycle_state(ctx, LIFECYCLE_FINALIZE_FAILED)
+            self.finalizer_errors.append(
+                FinalizerErrorRecord(item.scope, item.identity, exc)
+            )
+            return False
+
+        _set_lifecycle_state(ctx, LIFECYCLE_FINALIZED)
+        return True
+```
+
+注意：
+
+```text
+_close_item() 捕获 Exception 是为了收集 cleanup 错误，不是为了吞掉 framework bug。
+最终如果 finalizer_errors 非空，一定抛 LifecycleFinalizationError。
+```
+
+---
+
+## 5.4 prepare_* 的 P1 内部顺序
+
+保持 public API 不变，只调整内部。
+
+```python
+def prepare_run(cfg):
+    rm_ctx = RMContext(cfg)
+    rm_ctx._cleanup_stack = CleanupStack()
+
+    try:
+        rm_ctx._cleanup_stack.push(
+            scope="run",
+            identity=None,
+            ctx=rm_ctx,
+            finalizer=finalize_run,
+        )
+
+        # risky run initialization
+        _initialize_run_context(rm_ctx, cfg)
+
+        return rm_ctx
+
+    except Exception as exc:
+        rm_ctx._cleanup_stack.close_all_remaining()
+
+        if rm_ctx._cleanup_stack.finalizer_errors:
+            raise LifecycleFinalizationError(
+                "Run preparation failed and cleanup failed",
+                primary_error=exc,
+                finalizer_errors=rm_ctx._cleanup_stack.finalizer_errors,
+            )
+
+        raise
+
+
+def prepare_packet(rm_ctx, packet_cfg):
+    packet_ctx = PacketContext(rm_ctx, packet_cfg)
+
+    # register before risky initialization
+    rm_ctx.register_packet(packet_ctx)
+
+    rm_ctx._cleanup_stack.push(
+        scope="packet",
+        identity=getattr(packet_ctx, "packet_index", None),
+        ctx=packet_ctx,
+        finalizer=finalize_packet,
+    )
+
+    # risky packet initialization
+    _initialize_packet_context(packet_ctx, packet_cfg)
+
+    return packet_ctx
+
+
+def prepare_cell(packet_ctx, cell_cfg):
+    cell_ctx = CellContext(packet_ctx, cell_cfg)
+
+    # register before risky initialization
+    packet_ctx.register_cell(cell_ctx)
+
+    packet_ctx.rm_ctx._cleanup_stack.push(
+        scope="cell",
+        identity=(
+            getattr(packet_ctx, "packet_index", None),
+            getattr(cell_ctx, "cell_index", None),
+        ),
+        ctx=cell_ctx,
+        finalizer=finalize_cell,
+    )
+
+    # risky cell initialization
+    _initialize_cell_context(cell_ctx, cell_cfg)
+
+    return cell_ctx
+```
+
+这解决了：
+
+```text
+prepare_packet / prepare_cell 初始化中途失败时，pipeline 拿不到局部变量的问题。
+```
+
+因为 context 已经在 cleanup stack 里。
+
+---
+
+## 5.5 单 cell 执行
+
+```python
+def _execute_algorithm_cell(algorithm, cell_ctx,
+                            packet_index, cell_index, algorithm_name):
+    try:
+        algorithm.execute_cell(cell_ctx)
+
+    except FrameworkError:
+        # framework-owned，继续抛出
+        raise
+
+    except Exception as exc:
+        # trust boundary:
+        # non-FrameworkError escaping from algorithm callback is algorithm-owned
+        try:
+            cell_ctx.error(
+                code="ALGORITHM_EXCEPTION",
+                message=str(exc),
+                detail={
+                    "exception_type": exc.__class__.__name__,
+                    "packet_index": packet_index,
+                    "cell_index": cell_index,
+                    "algorithm_name": algorithm_name,
+                },
+            )
+        except Exception as recording_exc:
+            raise DiagnosticRecordingError(
+                "Failed to record ALGORITHM_EXCEPTION diagnostic",
+                primary_error=exc,
+                recording_error=recording_exc,
+            )
+
+        raise AlgorithmExecutionError(
+            "Algorithm execution failed",
+            original_exception=exc,
+            packet_index=packet_index,
+            cell_index=cell_index,
+            algorithm_name=algorithm_name,
+        )
+```
+
+如果 `cell_ctx.error()` 自身失败：
+
+```text
+顶层不是 AlgorithmExecutionError。
+顶层是 DiagnosticRecordingError。
+原始算法异常保存在 DiagnosticRecordingError.primary_error。
+diagnostic 失败异常保存在 DiagnosticRecordingError.recording_error。
+```
+
+---
+
+## 5.6 `_run_cell`
+
+```python
+def _run_cell(packet_ctx, cell_cfg, algorithm, algorithm_name):
+    cleanup = packet_ctx.rm_ctx._cleanup_stack
+
+    cell_ctx = prepare_cell(packet_ctx, cell_cfg)
+
+    primary_error = None
+
+    try:
+        _execute_algorithm_cell(
+            algorithm=algorithm,
+            cell_ctx=cell_ctx,
+            packet_index=getattr(packet_ctx, "packet_index", None),
+            cell_index=getattr(cell_ctx, "cell_index", None),
+            algorithm_name=algorithm_name,
+        )
+    except Exception as exc:
+        primary_error = exc
+
+    finalize_ok = cleanup.close_through(cell_ctx)
+
+    if primary_error is not None:
+        raise primary_error
+
+    if not finalize_ok:
+        raise _StopBusinessTraversal()
+```
+
+关键点：
+
+```text
+algorithm exception + finalize_cell failure:
+  _execute_algorithm_cell 产生 primary_error = AlgorithmExecutionError
+  close_through(cell_ctx) 记录 finalizer error
+  然后重新 raise AlgorithmExecutionError
+  execute_pipeline 最终看到 finalizer_errors 非空
+  所以顶层抛 LifecycleFinalizationError(primary_error=AlgorithmExecutionError)
+```
+
+---
+
+## 5.7 `_run_packet`
+
+```python
+def _run_packet(rm_ctx, packet_cfg, algorithm, algorithm_name):
+    cleanup = rm_ctx._cleanup_stack
+
+    packet_ctx = prepare_packet(rm_ctx, packet_cfg)
+
+    primary_error = None
+
+    try:
+        for cell_cfg in packet_cfg.cells:
+            _run_cell(packet_ctx, cell_cfg, algorithm, algorithm_name)
+
+    except _StopBusinessTraversal:
+        # finalizer already failed.
+        # Stop remaining cells in this packet.
+        raise
+
+    except Exception as exc:
+        primary_error = exc
+
+    finalize_ok = cleanup.close_through(packet_ctx)
+
+    if primary_error is not None:
+        raise primary_error
+
+    if not finalize_ok:
+        raise _StopBusinessTraversal()
+```
+
+如果某个 cell finalizer 失败：
+
+```text
+_run_cell 抛 _StopBusinessTraversal
+_run_packet 不再执行后续 cell
+_run_packet 仍 close_through(packet_ctx)，清理 packet
+然后继续向外停止 traversal
+```
+
+如果 packet finalizer 也失败：
+
+```text
+cleanup.finalizer_errors 同时包含 cell finalizer failure 和 packet finalizer failure。
+```
+
+---
+
+## 5.8 `execute_pipeline`
+
+```python
+def execute_pipeline(rm_ctx, algorithm):
+    cleanup = rm_ctx._cleanup_stack
+    algorithm_name = _algorithm_name(algorithm)
+
+    primary_error = None
+
+    try:
+        for packet_cfg in rm_ctx.config.packets:
+            _run_packet(rm_ctx, packet_cfg, algorithm, algorithm_name)
+
+    except _StopBusinessTraversal:
+        # A finalizer failed.
+        # Do not run more packets/cells.
+        # Continue to outer cleanup below.
+        pass
+
+    except Exception as exc:
+        # AlgorithmExecutionError, DiagnosticRecordingError,
+        # FrameworkError, prepare failure, or unexpected framework bug.
+        primary_error = exc
+
+    finally:
+        cleanup.close_all_remaining()
+
+    if cleanup.finalizer_errors:
+        raise LifecycleFinalizationError(
+            "Lifecycle finalization failed",
+            primary_error=primary_error,
+            finalizer_errors=cleanup.finalizer_errors,
+        )
+
+    if primary_error is not None:
+        raise primary_error
+```
+
+这个控制流满足：
+
+```text
+prepare failure:
+  primary_error = prepare exception
+  close_all_remaining()
+  no finalizer errors -> raise prepare exception
+  has finalizer errors -> raise LifecycleFinalizationError(primary_error=prepare exception)
+
+algorithm exception:
+  primary_error = AlgorithmExecutionError
+  cleanup ok -> raise AlgorithmExecutionError
+  runner catches it -> RunResult(ERROR)
+
+algorithm exception + finalizer failure:
+  primary_error = AlgorithmExecutionError
+  finalizer_errors non-empty
+  raise LifecycleFinalizationError(primary_error=AlgorithmExecutionError)
+
+finalize_cell failure:
+  _StopBusinessTraversal
+  primary_error remains None
+  close outer cleanup
+  finalizer_errors non-empty
+  raise LifecycleFinalizationError(primary_error=None)
+
+framework exception + multiple finalizer failures:
+  primary_error = framework exception
+  finalizer_errors contains cell/packet/run finalizer errors
+  raise LifecycleFinalizationError(primary_error=framework exception)
+```
+
+---
+
+## 5.9 runner 最小修改
+
+```python
+def run_config(cfg, algorithm):
+    _check_core_config(cfg)
+    _check_algorithm(algorithm)
+
+    rm_ctx = prepare_run(cfg)
+    algorithm_name = _algorithm_name(algorithm)
+
+    try:
+        execute_pipeline(rm_ctx, algorithm)
+
+    except AlgorithmExecutionError as exc:
+        return build_run_result(
+            rm_ctx=rm_ctx,
+            algorithm_name=algorithm_name,
+            algorithm_error=exc,
+        )
+
+    return build_run_result(
+        rm_ctx=rm_ctx,
+        algorithm_name=algorithm_name,
+        algorithm_error=None,
+    )
+```
+
+这里仍然保持：
+
+```text
+run_config 不捕获宽泛 Exception。
+```
+
+---
+
+# 6. 最终异常优先级
+
+顶层异常优先级建议固定为：
+
+```text
+1. LifecycleFinalizationError
+2. DiagnosticRecordingError
+3. FrameworkError / prepare failure / framework bug
+4. AlgorithmExecutionError
+5. 无异常，仅根据 diagnostics 生成 RunResult
+```
+
+更具体地说：
+
+## 6.1 只有 algorithm failure
+
+```text
+顶层：AlgorithmExecutionError
+runner 捕获：是
+结果：RunResult(ERROR)
+保存：
+  AlgorithmExecutionError.original_exception = 原始算法异常
+```
+
+---
+
+## 6.2 algorithm failure + diagnostic recording failure
+
+```text
+顶层：DiagnosticRecordingError
+runner 捕获：否
+结果：不产生 RunResult
+保存：
+  DiagnosticRecordingError.primary_error = 原始算法异常
+  DiagnosticRecordingError.recording_error = diagnostic 记录失败异常
+```
+
+原因：
+
+```text
+算法异常本来可以转换为 case failure，
+但 diagnostic 记录失败说明 framework 无法保证结果完整。
+```
+
+---
+
+## 6.3 algorithm failure + cell finalizer failure
+
+```text
+顶层：LifecycleFinalizationError
+runner 捕获：否
+结果：不产生 RunResult
+保存：
+  LifecycleFinalizationError.primary_error = AlgorithmExecutionError
+  AlgorithmExecutionError.original_exception = 原始算法异常
+  LifecycleFinalizationError.finalizer_errors = [cell finalizer error, ...]
+```
+
+---
+
+## 6.4 diagnostic recording failure + finalizer failure
+
+```text
+顶层：LifecycleFinalizationError
+runner 捕获：否
+结果：不产生 RunResult
+保存：
+  LifecycleFinalizationError.primary_error = DiagnosticRecordingError
+  DiagnosticRecordingError.primary_error = 原始算法异常
+  DiagnosticRecordingError.recording_error = diagnostic 失败异常
+  LifecycleFinalizationError.finalizer_errors = [cell/packet/run finalizer errors]
+```
+
+---
+
+## 6.5 prepare/framework failure + 多个 finalizer failure
+
+```text
+顶层：LifecycleFinalizationError
+runner 捕获：否
+结果：不产生 RunResult
+保存：
+  LifecycleFinalizationError.primary_error = prepare/framework 原始异常
+  LifecycleFinalizationError.finalizer_errors = [
+      inner finalizer error,
+      outer finalizer error,
+      ...
+  ]
+```
+
+---
+
+## 6.6 只有 finalizer failure
+
+```text
+顶层：LifecycleFinalizationError
+runner 捕获：否
+结果：不产生 RunResult
+保存：
+  LifecycleFinalizationError.primary_error = None
+  LifecycleFinalizationError.finalizer_errors = [first finalizer error, ...]
+```
+
+---
+
+## 6.7 cell_ctx.error() 后正常返回 + finalizer failure
+
+```text
+顶层：LifecycleFinalizationError
+runner 捕获：否
+结果：不产生 RunResult
+保存：
+  LifecycleFinalizationError.primary_error = None
+  LifecycleFinalizationError.finalizer_errors = [...]
+```
+
+虽然 cell 已经报告了 case error，但 finalizer failure 使 lifecycle 不完整，所以不能返回 RunResult。
+
+---
+
+# 7. P1 最小测试点
+
+本轮新增测试应聚焦实现缺口：
+
+```text
+1. callback 内裸 KeyError 被归类为 ALGORITHM_EXCEPTION。
+2. callback 内 FrameworkError 继续抛出。
+3. callback 内 AlgorithmContextUsageError 被归类为 ALGORITHM_EXCEPTION。
+4. CellContext API 裸 KeyError 会被归类为 ALGORITHM_EXCEPTION，并在文档中声明这是 trust boundary 局限。
+5. finalize_cell 失败后不执行后续 cell。
+6. finalize_packet 失败后不执行后续 packet。
+7. finalize_cell 失败后仍执行 packet/run cleanup。
+8. finalize_cell + finalize_packet + finalize_run 多个错误全部进入 finalizer_errors。
+9. algorithm exception + finalize_cell failure -> LifecycleFinalizationError，primary_error 是 AlgorithmExecutionError。
+10. prepare_cell failure + packet/run finalizer failure -> LifecycleFinalizationError，primary_error 是 prepare_cell 原始异常。
+11. diagnostic recording failure -> DiagnosticRecordingError，保留原始算法异常。
+12. diagnostic recording failure + finalizer failure -> LifecycleFinalizationError，primary_error 是 DiagnosticRecordingError。
+13. prepare_packet 中途失败但已 push cleanup stack -> packet/run 被 cleanup。
+14. prepare_cell 中途失败但已 push cleanup stack -> cell/packet/run 被 cleanup。
+```
+
+---
+
+# 8. 最终 P1 结论
+
+本轮修订后的 P1 方案是：
+
+```text
+1. 接受 callback trust boundary 的局限：
+   只有显式 FrameworkError 能可靠传播为 framework failure。
+   裸 AttributeError/KeyError 无法自动证明来源。
+
+2. 不拆 public prepare_* API。
+   只修改 prepare_* 内部顺序：
+   create -> register -> cleanup_stack.push -> mark ACTIVE -> risky init。
+
+3. 使用 cleanup stack 管理 lifecycle。
+   finalizer 失败后立即停止业务遍历，只继续 outer cleanup。
+
+4. 使用最小 lifecycle state：
+   NEW / ACTIVE / FINALIZING / FINALIZED / FINALIZE_FAILED。
+
+5. finalizer failure 永远优先导致 LifecycleFinalizationError。
+   不返回 RunResult。
+
+6. runner 仍只捕获 AlgorithmExecutionError。
+   其他异常全部传播。
+
+7. 如果 framework 内部 bug 没有显式抛 FrameworkError，而是裸异常穿过
+   algorithm callback boundary，P1 会把它当 algorithm failure。
+   这是契约限制，不声称能自动解决。
+```
+
+这样是诚实、可实现、可测试的 ownership contract。
