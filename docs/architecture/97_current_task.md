@@ -41,6 +41,8 @@ Document the currently implemented schema-to-result flow and identify the P1 orc
 - Architecture documentation committed as 9b62955 in codex/arch.
 - Question 1 decided: outer orchestration belongs to rm_ref.runtime with no reverse dependency from core.
 - Question 2 decided: expected case outcomes use OrchestrationResult while API misuse and framework bugs continue to raise.
+- Question 2 exception ownership is now fully designed: callback trust boundary, lifecycle state, cleanup fail-fast behavior, exception priority, and required fault-injection tests are documented.
+- The reviewed source answer is archived as docs/architecture/archive/p1_question2_exception_ownership_answer.txt.
 - Questions 3 through 7 remain open and are recorded with project facts, evaluation criteria, ownership, and required tests.
 - Payload format remains undecided; only existing input_pkt_by_cc and input.samples behavior is documented as implemented.
 - Scope check passed; documentation-only task, so tests were not run.
