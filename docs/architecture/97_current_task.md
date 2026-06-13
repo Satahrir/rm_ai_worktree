@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `core-cleanup-stack-declaration-v1`
-- Status: `IN_PROGRESS`
+- Status: `REVIEW`
 - Role: `core`
 - Branch: `codex/core`
 - Worktree: `rm_ref_core`
@@ -50,3 +50,7 @@ Declare the lifecycle cleanup stack on RMContext so static analysis recognizes t
 - Preserve existing cleanup ownership and exception behavior.
 - Keep the change limited to core context declaration and focused coverage.
 - Do not modify runtime, schema, config, validator, payload, CLI, workflow, or architecture files from the feature worktree.
+- Feature implementation committed as 1b00c8b on codex/core.
+- Focused core tests passed: 49.
+- Full regression tests passed: 133.
+- Scope check and git diff check passed.
