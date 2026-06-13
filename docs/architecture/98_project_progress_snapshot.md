@@ -2,7 +2,7 @@
 
 ## Snapshot Date
 
-2026-06-12
+2026-06-13
 
 ## Purpose
 
@@ -129,9 +129,26 @@ The `core-hardening-v2` task is merged. Core lifecycle finalization and stable
 result serialization are implemented without pulling schema, validation,
 packing, CLI, or business-algorithm logic into core.
 
-The next feature assignment has not yet been selected. The remaining outer
-runner, integration testing, packing, IO, observability, and concrete algorithm
-work stays listed as known limitations until separately implemented.
+The current implemented schema-to-result flow and P1 orchestration gaps are now
+documented in `13_current_implemented_flow.md` and
+`14_p1_design_questions.md`.
+
+The outer orchestration package and result model are designed as:
+
+```text
+rm_ref.runtime
+OrchestrationResult
+```
+
+The supporting core exception-ownership contract is also designed but not
+implemented. The next implementation-ready task is a separately scoped core
+hardening change that removes broad runner exception capture, introduces the
+callback trust boundary and cleanup lifecycle state, and adds fault-injection
+tests.
+
+Schema injection, algorithm injection, payload boundaries, validation
+serialization details, and Python 3.6.3 verification remain open architecture
+questions before the complete outer runtime can be implemented.
 
 ## Historical Note
 

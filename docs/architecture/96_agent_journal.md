@@ -146,3 +146,27 @@ Result:
 - task status set to `MERGED`
 - no workflow-rule change; `99_multi_agent_workflow.md` remains unchanged
 - remaining end-to-end runner and integration work stays outside core
+
+------
+
+## 2026-06-13
+
+### P1 Current Flow Architecture Integration
+
+Completed:
+
+- merged `codex/arch` into `main` as `ce41a0d`
+- documented the implemented schema-to-result flow and manual caller duties
+- selected `rm_ref.runtime` as the outer orchestration package
+- selected `OrchestrationResult` for expected setup, validation, and execution outcomes
+- designed the core callback trust boundary, cleanup lifecycle state, exception
+  priority, and required fault-injection tests
+- archived the reviewed exception-ownership design input
+
+Result:
+
+- task status set to `MERGED`
+- documentation-only task; tests were not run
+- core exception ownership is implementation-ready as a separate scoped task
+- schema, algorithm, payload, validation serialization, and Python 3.6
+  verification questions remain open
