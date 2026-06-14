@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `validation-result-serialization-v1`
-- Status: `IN_PROGRESS`
+- Status: `REVIEW`
 - Role: `config`
 - Branch: `codex/config`
 - Worktree: `rm_ref_config`
@@ -57,3 +57,9 @@ Implement stable plain-data serialization for ValidationIssue and ValidationResu
 - Serialized output must not share mutable containers with issue values.
 - Do not import serialization helpers from rm_ref.core.
 - Do not change ValidationIssue constructor ownership behavior.
+- Feature implementation committed as e790162 on codex/config.
+- Focused validator tests passed: 16.
+- Config and schema regression tests passed: 17.
+- Modern Python full regression tests passed: 141.
+- Python 3.6.3 full regression tests passed: 141 with the known pytest.ini pythonpath warning.
+- Scope check and git diff check passed.
