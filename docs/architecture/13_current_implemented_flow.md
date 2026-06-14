@@ -764,13 +764,13 @@ Conceptually:
 
 ```text
 outer runner
-  1. select schema
+  1. receive an explicit SchemaDefinition
   2. resolve UserConfig
   3. validate ResolvedConfig
   4. stop on validation errors
   5. convert to TestcaseConfig
-  6. inject already-loaded payload through an explicit boundary
-  7. obtain an Algorithm instance through explicit injection or a boundary
+  6. inject optional payload_by_packet[packet_index][cell_index]
+  7. receive an already constructed Algorithm instance
   8. call core.run_config()
   9. return a structured outer result
 ```
@@ -809,16 +809,17 @@ them to one string.
 
 ### Injection Points
 
-P1 should prefer explicit injected dependencies for:
+P1 uses explicit caller-provided values:
 
 ```text
-schema lookup
-payload preparation
-algorithm construction or selection
+SchemaDefinition
+Algorithm instance
+optional payload_by_packet mapping
 ```
 
-This keeps file IO, CLI behavior, and business registration outside the
-reusable execution core.
+The caller owns schema lookup and algorithm construction. File loading and
+payload decoding remain outside runtime. Runtime validates packet/cell mapping
+indexes but does not interpret payload content.
 
 ## 15. P1 Minimal Integration Test
 
@@ -855,9 +856,26 @@ or proprietary tools.
 
 All production and test code must parse and run on Python 3.6.3.
 
-### Planned P1 Audit
+### Decided P1 Verification
 
-The audit should check source and tests for:
+The exact local interpreter is:
+
+```powershell
+D:\ProgramData\miniconda3\envs\py3p6\python.exe
+```
+
+The required real-interpreter command is:
+
+```powershell
+D:\ProgramData\miniconda3\envs\py3p6\python.exe -m pytest -q
+```
+
+On June 14, 2026, the current baseline passed all 133 tests under Python 3.6.3
+with pytest 6.2.4. The run emitted a warning that pytest 6.2.4 does not
+recognize the current `pytest.ini` `pythonpath` option. Import-path setup still
+needs an explicit compatible solution.
+
+A future static audit should check source and tests for:
 
 ```text
 dataclasses
@@ -875,8 +893,8 @@ Simple text search is useful for candidate discovery but is not sufficient for
 tokens such as `|`, which can have unrelated meanings. Findings should be
 confirmed with syntax-aware inspection or an actual Python 3.6 parser/runtime.
 
-The current development test run under a newer Python interpreter does not by
-itself prove Python 3.6.3 compatibility.
+The static audit supplements but does not replace the real Python 3.6.3 run.
+P1 must also retain the modern-Python full regression run.
 
 ## 17. Non-Goals For P1
 
@@ -909,7 +927,8 @@ ValidationIssue and ValidationResult have no stable to_dict() API
 setup/resolution/validation/execution outcomes are not unified
 no packer integration
 no observability renderer
-Python 3.6.3 compatibility has not been verified by a dedicated audit
+no static Python 3.6 compatibility checker
+pytest 6.2.4 does not recognize the current pytest.ini pythonpath option
 ```
 
 These are implementation gaps, not implemented features.
@@ -933,18 +952,24 @@ The current summary is:
    supporting core exception-ownership and lifecycle contract is implemented:
    a returned RunResult means framework cleanup succeeded, while framework and
    finalizer failures propagate.
-3. OPEN: Does the outer runner receive a SchemaDefinition, a SchemaRegistry, or an
-   injected schema lookup callable?
-4. OPEN: Does it receive an Algorithm instance or an injected algorithm factory?
-5. OPEN: What is the minimal payload injection contract before file IO exists?
-6. OPEN: P1 requires ValidationIssue and ValidationResult to_dict(); the
-   minimum serialized fields and rules remain undecided.
-7. OPEN: How will Python 3.6.3 compatibility be verified in CI?
+3. DECIDED: each call receives an explicit, already constructed
+   SchemaDefinition; lookup and registry policy remain outside runtime.
+4. DECIDED: each call receives an already constructed Algorithm instance;
+   selection, construction, dependencies, and cross-case reuse are caller
+   responsibilities.
+5. DECIDED: optional payload_by_packet[packet_index][cell_index] values are
+   injected as opaque data. Missing entries map to [], while extra indexes or
+   invalid mapping shape produce PayloadMappingError and SETUP_ERROR.
+6. DECIDED: ValidationIssue.to_dict() emits all fixed fields and
+   ValidationResult.to_dict() emits ok/errors/warnings using independent plain
+   data. Unsupported values raise TypeError.
+7. DECIDED: run the full suite with the exact local Python 3.6.3 interpreter
+   and the modern interpreter, then add an AST/token-aware static checker.
 ```
 
 ### 19.1 Payload Boundary
 
-Status: open question. Previous proposed answers have been withdrawn.
+Status: decided, not implemented.
 
 The only implemented facts are:
 
@@ -954,16 +979,17 @@ The core pipeline exposes the selected value as CellContext input.samples.
 ResolvedConfig.to_core_config() does not populate input_pkt_by_cc.
 ```
 
-P1 still needs to decide:
+P1 will accept:
 
-```text
-1. What payload argument, if any, the outer orchestration API accepts.
-2. How external payload data maps to packets and cells.
-3. Which layer validates missing, extra, or malformed payload entries.
-4. Whether P1 only injects already-prepared data or also defines a preparation
-   interface.
-5. Which payload details remain opaque business data.
+```python
+payload_by_packet = {
+    packet_index: {
+        cell_index: payload_value,
+    },
+}
 ```
 
-No `payload_by_packet`, named-input, channel, antenna, or sample-layout format
-is currently selected.
+Missing entries use the core default `[]`. Runtime rejects extra packet/cell
+indexes and malformed mapping structure with `PayloadMappingError`, but keeps
+payload values opaque. File loading, named inputs, channel/antenna semantics,
+and sample-layout formats remain outside P1.
