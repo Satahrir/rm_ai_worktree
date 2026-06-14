@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `validation-result-serialization-v1`
-- Status: `IN_PROGRESS`
+- Status: `REVIEW`
 - Role: `config`
 - Branch: `codex/config`
 - Worktree: `rm_ref_config`
@@ -63,4 +63,10 @@ Implement stable plain-data serialization for ValidationIssue and ValidationResu
 - Modern Python full regression tests passed: 141.
 - Python 3.6.3 full regression tests passed: 141 with the known pytest.ini pythonpath warning.
 - Scope check and git diff check passed.
-- Independent review found blocking edge cases in repr-based error handling, scalar subclasses, and deterministic set ordering; fixes are in progress.
+- Independent review found blocking edge cases in repr-based error handling, scalar subclasses, and deterministic set ordering.
+- Review fixes committed as e8a539b on codex/config.
+- Unsupported values now report TypeError without invoking repr.
+- Scalar and container subclasses are rejected rather than returned as plain values.
+- Float set ordering uses IEEE-754 bytes for deterministic NaN ordering.
+- Modern Python and Python 3.6.3 full regression tests passed after fixes: 146 each.
+- Post-fix scope check and git diff check passed.
