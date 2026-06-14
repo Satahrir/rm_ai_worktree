@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `validation-result-serialization-v1`
-- Status: `REVIEW`
+- Status: `MERGED`
 - Role: `config`
 - Branch: `codex/config`
 - Worktree: `rm_ref_config`
@@ -76,3 +76,6 @@ Implement stable plain-data serialization for ValidationIssue and ValidationResu
 - Final focused tests passed on modern Python and Python 3.6.3: 22 each.
 - Final full regression tests passed on modern Python and Python 3.6.3: 147 each.
 - Final scope check and git diff check passed.
+- Final independent review completed with no findings and approved merge.
+- Merged into main as 2d83da4.
+- Circular containers remain outside the supported plain-data contract.

@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "validation-result-serialization-v1",
-    "status": "REVIEW",
+    "status": "MERGED",
     "goal": "Implement stable plain-data serialization for ValidationIssue and ValidationResult.",
     "role": "config",
     "branch": "codex/config",
@@ -83,7 +83,10 @@
       "Unsupported-value and key errors now use fixed TypeError messages without reading object attributes.",
       "Final focused tests passed on modern Python and Python 3.6.3: 22 each.",
       "Final full regression tests passed on modern Python and Python 3.6.3: 147 each.",
-      "Final scope check and git diff check passed."
+      "Final scope check and git diff check passed.",
+      "Final independent review completed with no findings and approved merge.",
+      "Merged into main as 2d83da4.",
+      "Circular containers remain outside the supported plain-data contract."
     ]
   }
 }

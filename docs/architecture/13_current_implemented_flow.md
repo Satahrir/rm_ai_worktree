@@ -367,6 +367,19 @@ description
 custom rule name
 ```
 
+`ValidationIssue.to_dict()` emits all fixed fields as independent plain data.
+`ValidationResult.to_dict()` emits:
+
+```text
+ok
+errors[]
+warnings[]
+```
+
+Issue order is preserved. Tuples and sets become deterministic lists.
+Unsupported values and dictionary keys raise `TypeError` without being
+stringified. Circular containers are not supported.
+
 Normal invalid user values are collected as structured issues instead of
 raising immediately.
 
@@ -607,6 +620,8 @@ Diagnostic
 CellOutput
 PacketOutput
 RunResult
+ValidationIssue
+ValidationResult
 ```
 
 Serialization:
@@ -923,12 +938,12 @@ validation can be bypassed by direct core calls
 no standard payload loader or payload preparation API
 algorithm_name does not select an Algorithm instance
 no cross-layer integration test
-ValidationIssue and ValidationResult have no stable to_dict() API
 setup/resolution/validation/execution outcomes are not unified
 no packer integration
 no observability renderer
 no static Python 3.6 compatibility checker
 pytest 6.2.4 does not recognize the current pytest.ini pythonpath option
+validation serialization does not support circular containers
 ```
 
 These are implementation gaps, not implemented features.
@@ -960,7 +975,7 @@ The current summary is:
 5. DECIDED: optional payload_by_packet[packet_index][cell_index] values are
    injected as opaque data. Missing entries map to [], while extra indexes or
    invalid mapping shape produce PayloadMappingError and SETUP_ERROR.
-6. DECIDED: ValidationIssue.to_dict() emits all fixed fields and
+6. IMPLEMENTED: ValidationIssue.to_dict() emits all fixed fields and
    ValidationResult.to_dict() emits ok/errors/warnings using independent plain
    data. Unsupported values raise TypeError.
 7. DECIDED: run the full suite with the exact local Python 3.6.3 interpreter

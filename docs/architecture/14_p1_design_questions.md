@@ -33,7 +33,7 @@ exist.
 ### Status
 
 ```text
-DECIDED
+IMPLEMENTED
 ```
 
 ### Question
@@ -800,7 +800,7 @@ What is the minimum stable `to_dict()` contract for `ValidationIssue` and
 ### Implemented Facts
 
 Core diagnostics and result objects have deterministic `to_dict()` methods.
-Validation result objects currently do not.
+Validation issues and results now implement the decided serialization contract.
 
 ### Decision
 
@@ -865,6 +865,27 @@ decision does not change `ValidationIssue.__init__()` ownership behavior.
 Serialization failure propagates. It is not converted to `SETUP_ERROR` or
 `VALIDATION_ERROR`.
 
+### Implemented Behavior
+
+The merged validator implementation:
+
+```text
+emits every fixed ValidationIssue field, including None values
+emits ValidationResult ok/errors/warnings
+preserves issue discovery order
+creates independent plain containers
+rejects scalar and container subclasses
+sorts sets deterministically, including floats by IEEE-754 bytes
+raises fixed-message TypeError without inspecting unsupported objects
+does not import serialization helpers from rm_ref.core
+```
+
+Circular containers are not supported and may fail through recursion. They
+remain outside the current plain-data contract.
+
+The implementation was committed on `codex/config` through `e790162`,
+`e8a539b`, and `ded8d75`, then merged into `main` as `2d83da4`.
+
 ### Implementation Ownership
 
 Serializer changes belong to config/validator-agent scope:
@@ -885,7 +906,7 @@ errors and warnings retain discovery order
 tuple and set values become deterministic plain lists
 mutating serialized output does not mutate the issue
 unsupported value and key types raise TypeError
-OrchestrationResult embeds validation.to_dict()
+OrchestrationResult embeds validation.to_dict() (future runtime integration)
 ```
 
 ## 8. Question 7: Python 3.6.3 Verification
