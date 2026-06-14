@@ -1,4 +1,7 @@
 from copy import deepcopy
+import struct
+
+import pytest
 
 from rm_ref.config import (
     ResolvedCellConfig,
@@ -6,7 +9,12 @@ from rm_ref.config import (
     ResolvedPacketConfig,
 )
 from rm_ref.schema import SchemaDefinition
-from rm_ref.validator import WARNING, ValidationIssue, Validator
+from rm_ref.validator import (
+    WARNING,
+    ValidationIssue,
+    ValidationResult,
+    Validator,
+)
 
 
 def make_schema():
@@ -196,3 +204,260 @@ def test_validator_does_not_mutate_resolved_config():
     assert resolved.packets[0].cells[0].values == (
         original.packets[0].cells[0].values
     )
+
+
+def test_validation_result_serializes_success():
+    assert ValidationResult().to_dict() == {
+        "ok": True,
+        "errors": [],
+        "warnings": [],
+    }
+
+
+def test_validation_issue_serializes_all_fixed_fields():
+    issue = ValidationIssue(
+        code="MIN_VALUE",
+        message="gain is too small",
+        schema_id="validate/v1",
+        field_name="gain",
+        original_field_name="Gain",
+        packet_index=4,
+        cell_index=7,
+        value=-1,
+        expected_rule="value >= 2",
+        word=1,
+        msb=3,
+        lsb=0,
+        width=4,
+        description="Cell gain",
+        rule_name="gain_range",
+    )
+
+    assert issue.to_dict() == {
+        "severity": "error",
+        "code": "MIN_VALUE",
+        "message": "gain is too small",
+        "schema_id": "validate/v1",
+        "field_name": "gain",
+        "original_field_name": "Gain",
+        "packet_index": 4,
+        "cell_index": 7,
+        "value": -1,
+        "expected_rule": "value >= 2",
+        "word": 1,
+        "msb": 3,
+        "lsb": 0,
+        "width": 4,
+        "description": "Cell gain",
+        "rule_name": "gain_range",
+    }
+
+
+def test_validation_issue_serializes_none_fields():
+    serialized = ValidationIssue("REQUIRED", "field is required").to_dict()
+
+    assert set(serialized) == {
+        "severity",
+        "code",
+        "message",
+        "schema_id",
+        "field_name",
+        "original_field_name",
+        "packet_index",
+        "cell_index",
+        "value",
+        "expected_rule",
+        "word",
+        "msb",
+        "lsb",
+        "width",
+        "description",
+        "rule_name",
+    }
+    assert serialized["schema_id"] is None
+    assert serialized["value"] is None
+    assert serialized["description"] == ""
+
+
+def test_validation_result_preserves_issue_order():
+    result = ValidationResult()
+    result.add(ValidationIssue("ERROR_1", "first error"))
+    result.add(ValidationIssue("ERROR_2", "second error"))
+    result.add(
+        ValidationIssue(
+            "WARNING_1",
+            "first warning",
+            severity=WARNING,
+        )
+    )
+    result.add(
+        ValidationIssue(
+            "WARNING_2",
+            "second warning",
+            severity=WARNING,
+        )
+    )
+
+    serialized = result.to_dict()
+
+    assert serialized["ok"] is False
+    assert [item["code"] for item in serialized["errors"]] == [
+        "ERROR_1",
+        "ERROR_2",
+    ]
+    assert [item["code"] for item in serialized["warnings"]] == [
+        "WARNING_1",
+        "WARNING_2",
+    ]
+
+
+def test_validation_issue_serializes_plain_containers_deterministically():
+    issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad structured value",
+        value={
+            "tuple": (1, 2),
+            "set": set([3, 1, 2]),
+            "frozen": frozenset(["b", "a"]),
+        },
+    )
+
+    assert issue.to_dict()["value"] == {
+        "frozen": ["a", "b"],
+        "set": [1, 2, 3],
+        "tuple": [1, 2],
+    }
+
+
+def test_serialized_validation_value_does_not_share_mutable_containers():
+    value = {"items": [{"samples": [1, 2]}]}
+    issue = ValidationIssue("BAD_VALUE", "bad value", value=value)
+
+    serialized = issue.to_dict()
+    serialized["value"]["items"][0]["samples"].append(3)
+
+    assert issue.value == {"items": [{"samples": [1, 2]}]}
+
+
+def test_validation_issue_rejects_unsupported_value():
+    issue = ValidationIssue("BAD_VALUE", "bad value", value=object())
+
+    with pytest.raises(TypeError, match="serialized values must be"):
+        issue.to_dict()
+
+
+def test_validation_issue_rejects_unsupported_dict_key():
+    unsupported_key = ("tuple", "key")
+    issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value={unsupported_key: 1},
+    )
+
+    with pytest.raises(TypeError, match="serialized dict keys must be scalar"):
+        issue.to_dict()
+
+
+def test_validation_issue_does_not_call_repr_for_unsupported_value():
+    class BadRepr(object):
+        def __repr__(self):
+            raise RuntimeError("repr must not run")
+
+    issue = ValidationIssue("BAD_VALUE", "bad value", value=BadRepr())
+
+    with pytest.raises(TypeError, match="serialized values must be"):
+        issue.to_dict()
+
+
+def test_validation_issue_does_not_call_repr_for_unsupported_dict_key():
+    class BadRepr(object):
+        def __repr__(self):
+            raise RuntimeError("repr must not run")
+
+    issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value={BadRepr(): 1},
+    )
+
+    with pytest.raises(TypeError, match="serialized dict keys must be scalar"):
+        issue.to_dict()
+
+
+def test_validation_issue_rejects_scalar_subclasses():
+    class MutableInt(int):
+        pass
+
+    value = MutableInt(3)
+    value.items = []
+    issue = ValidationIssue("BAD_VALUE", "bad value", value=value)
+
+    with pytest.raises(TypeError, match="serialized values must be"):
+        issue.to_dict()
+
+
+def test_validation_issue_rejects_container_subclasses():
+    class CustomList(list):
+        pass
+
+    issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value=CustomList([1, 2]),
+    )
+
+    with pytest.raises(TypeError, match="serialized values must be"):
+        issue.to_dict()
+
+
+def test_validation_issue_does_not_read_unsupported_type_name():
+    class ExplodingMeta(type):
+        def __getattribute__(cls, name):
+            if name == "__name__":
+                raise RuntimeError("type name must not be read")
+            return type.__getattribute__(cls, name)
+
+    class Unsupported(object, metaclass=ExplodingMeta):
+        pass
+
+    value_issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value=Unsupported(),
+    )
+    key_issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value={Unsupported(): 1},
+    )
+
+    with pytest.raises(TypeError, match="serialized values must be"):
+        value_issue.to_dict()
+    with pytest.raises(TypeError, match="serialized dict keys must be scalar"):
+        key_issue.to_dict()
+
+
+def test_validation_issue_sorts_nan_values_by_float_bits():
+    low_payload_nan = struct.unpack(
+        ">d",
+        bytes.fromhex("7ff8000000000001"),
+    )[0]
+    high_payload_nan = struct.unpack(
+        ">d",
+        bytes.fromhex("7ff8000000000002"),
+    )[0]
+    issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value=set([high_payload_nan, low_payload_nan]),
+    )
+
+    serialized = issue.to_dict()["value"]
+
+    assert [
+        struct.pack(">d", value).hex()
+        for value in serialized
+    ] == [
+        "7ff8000000000001",
+        "7ff8000000000002",
+    ]

@@ -1,5 +1,68 @@
+from copy import deepcopy
+import struct
+
+
 ERROR = "error"
 WARNING = "warning"
+
+
+_SCALAR_TYPES = (type(None), bool, int, float, str)
+
+
+def _is_scalar(value):
+    return type(value) in _SCALAR_TYPES
+
+
+def _plain_sort_key(value):
+    value_type = type(value)
+    if value is None:
+        return (0,)
+    if value_type is bool:
+        return (1, int(value))
+    if value_type is int:
+        return (2, value)
+    if value_type is float:
+        return (3, struct.pack(">d", value))
+    if value_type is str:
+        return (4, value)
+    if value_type is list:
+        return (5, tuple(_plain_sort_key(item) for item in value))
+    if value_type is dict:
+        return (
+            6,
+            tuple(
+                (
+                    _plain_sort_key(key),
+                    _plain_sort_key(value[key]),
+                )
+                for key in sorted(value, key=_plain_sort_key)
+            ),
+        )
+    raise TypeError("serialized values must be dict, list, or scalar")
+
+
+def _to_plain_value(value):
+    if _is_scalar(value):
+        return value
+    value_type = type(value)
+    if value_type is dict:
+        for key in value:
+            if not _is_scalar(key):
+                raise TypeError(
+                    "serialized dict keys must be scalar"
+                )
+        result = {}
+        for key in sorted(value, key=_plain_sort_key):
+            result[deepcopy(key)] = _to_plain_value(value[key])
+        return result
+    if value_type in (list, tuple):
+        return [_to_plain_value(item) for item in value]
+    if value_type in (set, frozenset):
+        plain_items = [_to_plain_value(item) for item in value]
+        return sorted(plain_items, key=_plain_sort_key)
+    raise TypeError(
+        "serialized values must be dict, list, or scalar"
+    )
 
 
 class ValidationIssue(object):
@@ -40,6 +103,26 @@ class ValidationIssue(object):
         self.width = width
         self.description = description or ""
         self.rule_name = rule_name
+
+    def to_dict(self):
+        return {
+            "severity": self.severity,
+            "code": self.code,
+            "message": self.message,
+            "schema_id": self.schema_id,
+            "field_name": self.field_name,
+            "original_field_name": self.original_field_name,
+            "packet_index": self.packet_index,
+            "cell_index": self.cell_index,
+            "value": _to_plain_value(self.value),
+            "expected_rule": self.expected_rule,
+            "word": self.word,
+            "msb": self.msb,
+            "lsb": self.lsb,
+            "width": self.width,
+            "description": self.description,
+            "rule_name": self.rule_name,
+        }
 
     def __repr__(self):
         return (
@@ -82,3 +165,10 @@ class ValidationResult(object):
         if issue.severity != WARNING:
             raise ValueError("warning issue must have warning severity")
         return self.add(issue)
+
+    def to_dict(self):
+        return {
+            "ok": self.ok,
+            "errors": [issue.to_dict() for issue in self.errors],
+            "warnings": [issue.to_dict() for issue in self.warnings],
+        }
