@@ -1,5 +1,41 @@
+from copy import deepcopy
+
+
 ERROR = "error"
 WARNING = "warning"
+
+
+_SCALAR_TYPES = (type(None), bool, int, float, str)
+
+
+def _sort_key(value):
+    return (value.__class__.__name__, repr(value))
+
+
+def _to_plain_value(value):
+    if isinstance(value, _SCALAR_TYPES):
+        return value
+    if isinstance(value, dict):
+        result = {}
+        for key in sorted(value, key=_sort_key):
+            if not isinstance(key, _SCALAR_TYPES):
+                raise TypeError(
+                    "serialized dict keys must be scalar, got {0!r}".format(
+                        key
+                    )
+                )
+            result[deepcopy(key)] = _to_plain_value(value[key])
+        return result
+    if isinstance(value, (list, tuple)):
+        return [_to_plain_value(item) for item in value]
+    if isinstance(value, (set, frozenset)):
+        plain_items = [_to_plain_value(item) for item in value]
+        return sorted(plain_items, key=_sort_key)
+    raise TypeError(
+        "serialized values must be dict, list, or scalar, got {0!r}".format(
+            value
+        )
+    )
 
 
 class ValidationIssue(object):
@@ -40,6 +76,26 @@ class ValidationIssue(object):
         self.width = width
         self.description = description or ""
         self.rule_name = rule_name
+
+    def to_dict(self):
+        return {
+            "severity": self.severity,
+            "code": self.code,
+            "message": self.message,
+            "schema_id": self.schema_id,
+            "field_name": self.field_name,
+            "original_field_name": self.original_field_name,
+            "packet_index": self.packet_index,
+            "cell_index": self.cell_index,
+            "value": _to_plain_value(self.value),
+            "expected_rule": self.expected_rule,
+            "word": self.word,
+            "msb": self.msb,
+            "lsb": self.lsb,
+            "width": self.width,
+            "description": self.description,
+            "rule_name": self.rule_name,
+        }
 
     def __repr__(self):
         return (
@@ -82,3 +138,10 @@ class ValidationResult(object):
         if issue.severity != WARNING:
             raise ValueError("warning issue must have warning severity")
         return self.add(issue)
+
+    def to_dict(self):
+        return {
+            "ok": self.ok,
+            "errors": [issue.to_dict() for issue in self.errors],
+            "warnings": [issue.to_dict() for issue in self.warnings],
+        }
