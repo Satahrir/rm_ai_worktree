@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `validation-result-serialization-v1`
-- Status: `REVIEW`
+- Status: `IN_PROGRESS`
 - Role: `config`
 - Branch: `codex/config`
 - Worktree: `rm_ref_config`
@@ -63,3 +63,4 @@ Implement stable plain-data serialization for ValidationIssue and ValidationResu
 - Modern Python full regression tests passed: 141.
 - Python 3.6.3 full regression tests passed: 141 with the known pytest.ini pythonpath warning.
 - Scope check and git diff check passed.
+- Independent review found blocking edge cases in repr-based error handling, scalar subclasses, and deterministic set ordering; fixes are in progress.
