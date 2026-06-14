@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `validation-result-serialization-v1`
-- Status: `READY`
+- Status: `IN_PROGRESS`
 - Role: `config`
 - Branch: `codex/config`
 - Worktree: `rm_ref_config`

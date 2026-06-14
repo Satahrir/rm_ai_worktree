@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "validation-result-serialization-v1",
-    "status": "READY",
+    "status": "IN_PROGRESS",
     "goal": "Implement stable plain-data serialization for ValidationIssue and ValidationResult.",
     "role": "config",
     "branch": "codex/config",
