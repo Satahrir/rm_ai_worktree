@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `p1-runtime-boundary-decisions`
-- Status: `REVIEW`
+- Status: `MERGED`
 - Role: `arch`
 - Branch: `codex/arch`
 - Worktree: `rm_ref_arch`
@@ -44,3 +44,5 @@ Document the decided P1 schema, algorithm, payload, validation serialization, an
 - Feature scope check and git diff check passed.
 - No code tests required for the documentation-only change.
 - Existing baseline verified separately on Python 3.6.3: 133 passed with one pytest.ini pythonpath warning.
+- Review completed with no blocking findings.
+- Merged into main as 49c9037.

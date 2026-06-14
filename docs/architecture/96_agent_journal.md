@@ -223,3 +223,28 @@ Result:
 - task status set to `MERGED`
 - IDE static analysis can resolve `RMContext._cleanup_stack`
 - lifecycle and exception behavior remain unchanged
+
+### P1 Runtime Boundary Decisions Integration
+
+Completed:
+
+- merged architecture commit `22af159` into `main` as `49c9037`
+- selected explicit caller-provided `SchemaDefinition`
+- selected explicit caller-provided `Algorithm` instance
+- defined optional `payload_by_packet[packet_index][cell_index]`
+- defined stable `ValidationIssue` and `ValidationResult` serialization
+- defined exact local Python 3.6.3 verification plus a future static gate
+
+Verification:
+
+- documentation scope check: passed
+- review: no blocking findings
+- existing baseline under Python 3.6.3: 133 passed
+- pytest 6.2.4 reported one warning for the unsupported `pythonpath` option
+
+Result:
+
+- task status set to `MERGED`
+- all P1 architecture questions are decided
+- validation serialization is the next implementation task
+- runtime, payload mapping, and static compatibility checking remain planned
