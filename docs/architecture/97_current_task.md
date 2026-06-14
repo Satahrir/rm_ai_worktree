@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `p1-runtime-boundary-decisions`
-- Status: `READY`
+- Status: `IN_PROGRESS`
 - Role: `arch`
 - Branch: `codex/arch`
 - Worktree: `rm_ref_arch`

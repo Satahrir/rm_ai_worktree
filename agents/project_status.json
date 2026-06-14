@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "p1-runtime-boundary-decisions",
-    "status": "READY",
+    "status": "IN_PROGRESS",
     "goal": "Document the decided P1 schema, algorithm, payload, validation serialization, and Python 3.6.3 verification contracts.",
     "role": "arch",
     "branch": "codex/arch",
