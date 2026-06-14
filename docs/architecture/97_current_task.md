@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `validation-result-serialization-v1`
-- Status: `IN_PROGRESS`
+- Status: `REVIEW`
 - Role: `config`
 - Branch: `codex/config`
 - Worktree: `rm_ref_config`
@@ -70,4 +70,9 @@ Implement stable plain-data serialization for ValidationIssue and ValidationResu
 - Float set ordering uses IEEE-754 bytes for deterministic NaN ordering.
 - Modern Python and Python 3.6.3 full regression tests passed after fixes: 146 each.
 - Post-fix scope check and git diff check passed.
-- Second review found one remaining blocker: unsupported-object type-name lookup can invoke a custom metaclass; fixed-message TypeError handling is in progress.
+- Second review found one remaining blocker: unsupported-object type-name lookup can invoke a custom metaclass.
+- Final review fix committed as ded8d75 on codex/config.
+- Unsupported-value and key errors now use fixed TypeError messages without reading object attributes.
+- Final focused tests passed on modern Python and Python 3.6.3: 22 each.
+- Final full regression tests passed on modern Python and Python 3.6.3: 147 each.
+- Final scope check and git diff check passed.

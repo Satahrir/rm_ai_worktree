@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "validation-result-serialization-v1",
-    "status": "IN_PROGRESS",
+    "status": "REVIEW",
     "goal": "Implement stable plain-data serialization for ValidationIssue and ValidationResult.",
     "role": "config",
     "branch": "codex/config",
@@ -78,7 +78,12 @@
       "Float set ordering uses IEEE-754 bytes for deterministic NaN ordering.",
       "Modern Python and Python 3.6.3 full regression tests passed after fixes: 146 each.",
       "Post-fix scope check and git diff check passed.",
-      "Second review found one remaining blocker: unsupported-object type-name lookup can invoke a custom metaclass; fixed-message TypeError handling is in progress."
+      "Second review found one remaining blocker: unsupported-object type-name lookup can invoke a custom metaclass.",
+      "Final review fix committed as ded8d75 on codex/config.",
+      "Unsupported-value and key errors now use fixed TypeError messages without reading object attributes.",
+      "Final focused tests passed on modern Python and Python 3.6.3: 22 each.",
+      "Final full regression tests passed on modern Python and Python 3.6.3: 147 each.",
+      "Final scope check and git diff check passed."
     ]
   }
 }
