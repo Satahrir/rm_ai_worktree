@@ -1,4 +1,5 @@
 from copy import deepcopy
+import struct
 
 import pytest
 
@@ -355,3 +356,81 @@ def test_validation_issue_rejects_unsupported_dict_key():
 
     with pytest.raises(TypeError, match="serialized dict keys must be scalar"):
         issue.to_dict()
+
+
+def test_validation_issue_does_not_call_repr_for_unsupported_value():
+    class BadRepr(object):
+        def __repr__(self):
+            raise RuntimeError("repr must not run")
+
+    issue = ValidationIssue("BAD_VALUE", "bad value", value=BadRepr())
+
+    with pytest.raises(TypeError, match="got BadRepr"):
+        issue.to_dict()
+
+
+def test_validation_issue_does_not_call_repr_for_unsupported_dict_key():
+    class BadRepr(object):
+        def __repr__(self):
+            raise RuntimeError("repr must not run")
+
+    issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value={BadRepr(): 1},
+    )
+
+    with pytest.raises(TypeError, match="got BadRepr"):
+        issue.to_dict()
+
+
+def test_validation_issue_rejects_scalar_subclasses():
+    class MutableInt(int):
+        pass
+
+    value = MutableInt(3)
+    value.items = []
+    issue = ValidationIssue("BAD_VALUE", "bad value", value=value)
+
+    with pytest.raises(TypeError, match="got MutableInt"):
+        issue.to_dict()
+
+
+def test_validation_issue_rejects_container_subclasses():
+    class CustomList(list):
+        pass
+
+    issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value=CustomList([1, 2]),
+    )
+
+    with pytest.raises(TypeError, match="got CustomList"):
+        issue.to_dict()
+
+
+def test_validation_issue_sorts_nan_values_by_float_bits():
+    low_payload_nan = struct.unpack(
+        ">d",
+        bytes.fromhex("7ff8000000000001"),
+    )[0]
+    high_payload_nan = struct.unpack(
+        ">d",
+        bytes.fromhex("7ff8000000000002"),
+    )[0]
+    issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value=set([high_payload_nan, low_payload_nan]),
+    )
+
+    serialized = issue.to_dict()["value"]
+
+    assert [
+        struct.pack(">d", value).hex()
+        for value in serialized
+    ] == [
+        "7ff8000000000001",
+        "7ff8000000000002",
+    ]

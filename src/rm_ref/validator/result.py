@@ -1,4 +1,5 @@
 from copy import deepcopy
+import struct
 
 
 ERROR = "error"
@@ -8,32 +9,66 @@ WARNING = "warning"
 _SCALAR_TYPES = (type(None), bool, int, float, str)
 
 
-def _sort_key(value):
-    return (value.__class__.__name__, repr(value))
+def _is_scalar(value):
+    return type(value) in _SCALAR_TYPES
+
+
+def _plain_sort_key(value):
+    value_type = type(value)
+    if value is None:
+        return (0,)
+    if value_type is bool:
+        return (1, int(value))
+    if value_type is int:
+        return (2, value)
+    if value_type is float:
+        return (3, struct.pack(">d", value))
+    if value_type is str:
+        return (4, value)
+    if value_type is list:
+        return (5, tuple(_plain_sort_key(item) for item in value))
+    if value_type is dict:
+        return (
+            6,
+            tuple(
+                (
+                    _plain_sort_key(key),
+                    _plain_sort_key(value[key]),
+                )
+                for key in sorted(value, key=_plain_sort_key)
+            ),
+        )
+    raise TypeError(
+        "serialized values must be dict, list, or scalar, got {0}".format(
+            value_type.__name__
+        )
+    )
 
 
 def _to_plain_value(value):
-    if isinstance(value, _SCALAR_TYPES):
+    if _is_scalar(value):
         return value
-    if isinstance(value, dict):
-        result = {}
-        for key in sorted(value, key=_sort_key):
-            if not isinstance(key, _SCALAR_TYPES):
+    value_type = type(value)
+    if value_type is dict:
+        for key in value:
+            if not _is_scalar(key):
                 raise TypeError(
-                    "serialized dict keys must be scalar, got {0!r}".format(
-                        key
+                    "serialized dict keys must be scalar, got {0}".format(
+                        type(key).__name__
                     )
                 )
+        result = {}
+        for key in sorted(value, key=_plain_sort_key):
             result[deepcopy(key)] = _to_plain_value(value[key])
         return result
-    if isinstance(value, (list, tuple)):
+    if value_type in (list, tuple):
         return [_to_plain_value(item) for item in value]
-    if isinstance(value, (set, frozenset)):
+    if value_type in (set, frozenset):
         plain_items = [_to_plain_value(item) for item in value]
-        return sorted(plain_items, key=_sort_key)
+        return sorted(plain_items, key=_plain_sort_key)
     raise TypeError(
-        "serialized values must be dict, list, or scalar, got {0!r}".format(
-            value
+        "serialized values must be dict, list, or scalar, got {0}".format(
+            value_type.__name__
         )
     )
 
