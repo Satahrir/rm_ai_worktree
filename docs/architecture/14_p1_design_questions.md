@@ -277,15 +277,13 @@ unexpected runtime or framework exception
   propagate
 ```
 
-Schema construction normally occurs before the orchestrator because the schema
-injection contract will receive an existing schema object or provider. A broad
-`SchemaError -> SETUP_ERROR` rule is therefore not selected here. Question 3
-must define whether any schema lookup failure belongs to the expected setup
-classification.
+Schema construction and lookup occur before the orchestrator because P1
+receives an explicit `SchemaDefinition`. A broad
+`SchemaError -> SETUP_ERROR` rule is therefore not selected.
 
-Payload preparation or injection failures are not classified by this decision.
-Question 5 must distinguish expected payload data errors from injector
-implementation failures.
+The decided payload boundary classifies invalid mapping shape and unknown
+packet/cell indexes as `PayloadMappingError -> SETUP_ERROR`. Unexpected
+exceptions raised by payload values or copying still propagate.
 
 ### Core Exception Ownership Contract
 
@@ -516,15 +514,15 @@ tests/test_integration/
 ```
 
 Validator scope is required because `OrchestrationResult.to_dict()` must
-serialize `ValidationResult`. The minimum validation serialization contract
-remains question 6.
+serialize `ValidationResult`. Question 6 defines the required serialization
+contract.
 
 ## 4. Question 3: Schema Injection
 
 ### Status
 
 ```text
-OPEN
+DECIDED
 ```
 
 ### Question
@@ -534,37 +532,69 @@ callable, or another schema source?
 
 ### Implemented Facts
 
-`ConfigResolver.resolve()` already supports:
+`ConfigResolver.resolve()` already supports an explicit `SchemaDefinition` or
+a resolver configured with `SchemaRegistry`.
 
-```text
-an explicit SchemaDefinition
-or
-a ConfigResolver configured with SchemaRegistry
+### Decision
+
+P1 receives one already constructed `SchemaDefinition` for each case:
+
+```python
+run_case(user_config, schema, algorithm, payload_by_packet=None)
 ```
 
-### Evaluation Criteria
+The caller owns schema loading, construction, registry lookup, and selection.
+Runtime validates the explicit object and resolves with:
 
-The decision should minimize P1 scope while considering:
+```python
+ConfigResolver().resolve(user_config, schema=schema)
+```
+
+Multi-schema callers may use a registry outside runtime:
+
+```python
+schema = registry.get(user_config.schema_id)
+result = run_case(user_config, schema, algorithm, payload_by_packet)
+```
+
+P1 does not accept a registry or schema-provider callback. This keeps schema
+management policy outside reusable orchestration.
+
+### Error Boundary
 
 ```text
-single-schema use
-multi-schema callers
-schema lookup failure behavior
-test setup complexity
-whether schema management policy is being fixed prematurely
+schema is not SchemaDefinition
+  API misuse; propagate TypeError
+
+schema construction failed before run_case()
+  outside runtime; propagate the schema exception
+
+UserConfig.schema_id does not match the explicit schema
+  ConfigResolutionError -> SETUP_ERROR
 ```
+
+Runtime must not broadly convert every `SchemaError` to `SETUP_ERROR`.
 
 ### Implementation Ownership
 
-The runtime implementation agent owns orchestration use of the selected API.
-Changes to schema registry behavior require config/schema-agent scope.
+The runtime implementation agent owns explicit schema injection. No schema
+registry change is required for P1.
+
+### Required Tests
+
+```text
+explicit SchemaDefinition resolves matching UserConfig
+schema-id mismatch returns SETUP_ERROR with ConfigResolutionError
+non-SchemaDefinition input propagates as API misuse
+runtime does not require or construct SchemaRegistry
+```
 
 ## 5. Question 4: Algorithm Injection
 
 ### Status
 
 ```text
-OPEN
+DECIDED
 ```
 
 ### Question
@@ -578,28 +608,69 @@ another selection mechanism?
 `UserConfig.algorithm_name` is metadata and does not select or construct an
 algorithm.
 
-### Evaluation Criteria
+### Decision
 
-The decision must clarify:
+P1 receives one already constructed `Algorithm` instance:
+
+```python
+run_case(user_config, schema, algorithm, payload_by_packet=None)
+```
+
+The caller owns algorithm selection, construction, dependency injection, and
+whether an instance is reused across cases. Runtime passes the same instance
+to `core.run_config()` and does not implement a factory, registry, or global
+selection policy.
+
+Runtime guarantees one instance is used within one `run_case()` call. It does
+not isolate state when the caller deliberately reuses an instance across
+calls. Callers should normally construct a new instance per case.
+
+### Algorithm Names
 
 ```text
-whether P1 performs algorithm selection
-how algorithm construction failures are represented
-whether algorithms may carry caller-provided dependencies
-whether global registration is avoided
+UserConfig.algorithm_name
+  caller-provided business/configuration metadata
+
+RunResult.algorithm_name
+  actual Python algorithm class name used by core
+```
+
+P1 does not require these values to match. Stable business-name-to-class
+binding belongs to a future algorithm registry design.
+
+### Error Boundary
+
+```text
+algorithm is not an Algorithm instance
+  API misuse; runtime raises TypeError
+
+algorithm construction fails
+  outside runtime; propagate to the caller
+
+Algorithm.execute_cell() fails
+  use the implemented core callback ownership contract
 ```
 
 ### Implementation Ownership
 
-The runtime implementation agent owns injection. A concrete registry or
-business selection policy would also require algorithm-agent design and scope.
+The runtime implementation agent owns explicit instance injection. No
+algorithm package or registry change is required for P1.
+
+### Required Tests
+
+```text
+runtime passes the exact injected Algorithm instance to core
+algorithm state remains visible on the injected instance
+non-Algorithm input propagates as API misuse
+runtime does not select by UserConfig.algorithm_name
+```
 
 ## 6. Question 5: Payload Boundary
 
 ### Status
 
 ```text
-OPEN
+DECIDED
 ```
 
 ### Question
@@ -616,22 +687,78 @@ the core pipeline exposes the selected value as CellContext input.samples
 there is no standard payload loader or injection API
 ```
 
-No packet/cell mapping format, named-input format, channel format, antenna
-format, or sample layout has been selected.
+### Decision
 
-### Evaluation Criteria
+P1 accepts optional, already prepared in-memory payload through:
 
-The decision must define:
+```python
+payload_by_packet = {
+    packet_index: {
+        cell_index: payload_value,
+    },
+}
+```
+
+The orchestration signature is:
+
+```python
+run_case(user_config, schema, algorithm, payload_by_packet=None)
+```
+
+Runtime validates only mapping structure and packet/cell indexes, then copies
+values into `PacketConfig.input_pkt_by_cc`. Payload values remain opaque.
+Runtime does not validate sample element types, shape, channel, antenna,
+encoding, or business meaning.
+
+### Missing And Extra Entries
 
 ```text
-the orchestration API argument
-packet and cell mapping
-missing and extra entry behavior
-the owner of structural validation
-whether P1 injects prepared data only
-which payload details remain opaque business data
-the boundary between rm_ref.runtime and rm_ref.io
+payload_by_packet is None
+  every cell receives the existing core default []
+
+packet or cell entry is absent
+  that cell receives []
+
+packet index does not exist in the resolved core config
+  PayloadMappingError -> SETUP_ERROR
+
+cell index does not exist in the referenced packet
+  PayloadMappingError -> SETUP_ERROR
+
+outer value is not a dict, or a packet value is not a dict
+  PayloadMappingError -> SETUP_ERROR
 ```
+
+Missing payload is not inherently invalid because some algorithms use only
+configuration. Algorithms own business validation of empty or malformed
+payload values.
+
+### Ownership And Copying
+
+Runtime deep-copies injected values into core configuration and does not mutate
+the caller's mapping. Core continues to isolate context input during context
+preparation.
+
+Unexpected exceptions raised by payload objects during copying propagate.
+They are not silently converted into `SETUP_ERROR`.
+
+### Runtime And IO Boundary
+
+```text
+caller or rm_ref.io
+  file loading, decoding, format conversion, and mapping construction
+
+rm_ref.runtime
+  packet/cell index validation and injection
+
+algorithm
+  payload shape and business-semantic validation
+
+rm_ref.core
+  expose the injected value as CellContext input.samples
+```
+
+P1 does not define payload file formats or implement file IO.
 
 ### Implementation Ownership
 
@@ -642,15 +769,27 @@ src/rm_ref/runtime/
 tests/test_integration/
 ```
 
-If file loading or decoding is included, `src/rm_ref/io/` requires a separate
-approved scope.
+`PayloadMappingError` belongs to runtime. File loading or decoding remains a
+separate `rm_ref.io` task.
+
+### Required Tests
+
+```text
+payload reaches the matching packet and cell
+missing mapping entries produce []
+extra packet index returns SETUP_ERROR
+extra cell index returns SETUP_ERROR
+invalid mapping shape returns SETUP_ERROR
+caller payload is not mutated
+payload content is not interpreted by runtime
+```
 
 ## 7. Question 6: Validation Serialization
 
 ### Status
 
 ```text
-OPEN
+DECIDED
 ```
 
 ### Question
@@ -663,24 +802,68 @@ What is the minimum stable `to_dict()` contract for `ValidationIssue` and
 Core diagnostics and result objects have deterministic `to_dict()` methods.
 Validation result objects currently do not.
 
-### Decided Dependency
+### Decision
 
-P1 requires these methods because the decided `OrchestrationResult.to_dict()`
-must serialize validation success and failure without ad hoc inspection of
-validator internals.
-
-### Evaluation Criteria
-
-The decision must consider:
+`ValidationIssue.to_dict()` always emits this fixed field set, including
+fields whose value is `None`:
 
 ```text
-whether the outer result requires plain-data serialization
-required issue fields
-deep-copy behavior for bad values
-deterministic ordering
-handling of unsupported non-plain values
-compatibility with existing core serialization conventions
+severity
+code
+message
+schema_id
+field_name
+original_field_name
+packet_index
+cell_index
+value
+expected_rule
+word
+msb
+lsb
+width
+description
+rule_name
 ```
+
+`ValidationResult.to_dict()` emits:
+
+```python
+{
+    "ok": result.ok,
+    "errors": [issue.to_dict() for issue in result.errors],
+    "warnings": [issue.to_dict() for issue in result.warnings],
+}
+```
+
+Issue order remains discovery order. Dictionary iteration order is not part of
+the API contract.
+
+### Plain-Value Rules
+
+The serializer creates independent plain data using rules equivalent to core
+result serialization:
+
+```text
+None, bool, int, float, str
+dict with scalar keys
+list
+tuple -> list
+set/frozenset -> deterministically sorted list
+```
+
+Unsupported values or dictionary keys raise `TypeError`. The serializer must
+not hide unsupported objects by calling `str()` or `repr()`.
+
+Validator must not import the serializer from `rm_ref.core`. P1 keeps a small
+validator-local helper unless a lower-level serialization package is designed
+separately.
+
+`to_dict()` output must not share mutable containers with issue values. This
+decision does not change `ValidationIssue.__init__()` ownership behavior.
+
+Serialization failure propagates. It is not converted to `SETUP_ERROR` or
+`VALIDATION_ERROR`.
 
 ### Implementation Ownership
 
@@ -693,12 +876,24 @@ tests/test_validator/
 
 Cross-layer behavior belongs in integration tests.
 
+### Required Tests
+
+```text
+successful result serializes to ok=True with empty lists
+all ValidationIssue fields are present
+errors and warnings retain discovery order
+tuple and set values become deterministic plain lists
+mutating serialized output does not mutate the issue
+unsupported value and key types raise TypeError
+OrchestrationResult embeds validation.to_dict()
+```
+
 ## 8. Question 7: Python 3.6.3 Verification
 
 ### Status
 
 ```text
-OPEN
+DECIDED
 ```
 
 ### Question
@@ -710,20 +905,68 @@ How will P1 demonstrate Python 3.6.3 compatibility?
 The repository requires Python 3.6.3 compatibility. A successful test run on a
 newer interpreter does not prove that compatibility.
 
-### Evaluation Criteria
+The local exact-version interpreter is:
 
-The decision should define:
-
-```text
-whether static source checks are added
-which incompatible syntax and APIs are checked
-whether a real Python 3.6.3 runtime is available
-which test subsets run under Python 3.6.3
-how CI records the compatibility result
+```powershell
+D:\ProgramData\miniconda3\envs\py3p6\python.exe
 ```
 
-Text matching alone is insufficient for ambiguous syntax such as `|` or
-version-specific standard-library API usage.
+### Decision
+
+P1 uses both a real local Python 3.6.3 test run and a future static
+compatibility check.
+
+The required runtime verification command is:
+
+```powershell
+D:\ProgramData\miniconda3\envs\py3p6\python.exe -m pytest -q
+```
+
+P1 must also run the full suite on the normal modern development interpreter.
+
+On June 14, 2026, the existing repository baseline produced:
+
+```text
+Python 3.6.3 :: Anaconda, Inc.
+pytest 6.2.4
+133 passed
+```
+
+The run emitted one warning because pytest 6.2.4 did not recognize the current
+`pytest.ini` `pythonpath` option. Tests passed, but import-path setup must be
+made explicit rather than relying on environment-specific path state.
+
+### Static Compatibility Check
+
+A future script should use AST/token-aware checks for prohibited syntax and
+known post-3.6 APIs. Text search alone is insufficient for ambiguous syntax.
+At minimum it should check:
+
+```text
+dataclasses
+typing.Protocol, Literal, and TypedDict
+built-in generic annotations
+X | Y type unions
+match/case
+f-string debug expressions
+known standard-library APIs or keyword arguments added after Python 3.6
+```
+
+The script is an early gate, not a substitute for the real interpreter run.
+
+### Completion Evidence
+
+Compatibility may be reported as verified only when:
+
+```text
+the exact interpreter reports Python 3.6.3
+the required P1/full test scope passes under that interpreter
+the modern-Python suite passes
+the static compatibility check passes once implemented
+```
+
+If the 3.6.3 run is unavailable, documentation must say compatibility is
+unverified.
 
 ### Implementation Ownership
 
@@ -732,25 +975,33 @@ Potential future scopes include:
 ```text
 scripts/
 tests/test_scripts/
+pytest import-path configuration
 CI configuration
 tests/test_integration/
 ```
 
 These paths are outside the current architecture-agent assignment.
 
-## 9. Decision Order
-
-Recommended order:
+### Required Tests
 
 ```text
-1. schema injection
-2. algorithm injection
-3. payload boundary
-4. validation serialization details
-5. Python 3.6.3 verification
+full suite under the exact Python 3.6.3 interpreter
+full suite under the modern development interpreter
+focused tests for every static-check violation category
+test import setup that does not depend on an unrecognized pytest.ini option
 ```
 
-Questions 1 and 2 are decided. Questions 3-5 complete the orchestration API.
-Question 6 is now required by question 2, but its exact serialized fields and
-plain-value rules remain open. Question 7 defines completion evidence and can
-be designed in parallel once the P1 source scope is known.
+## 9. Decision Order
+
+Questions 1-7 are decided. The next implementation order is:
+
+```text
+1. ValidationIssue and ValidationResult serialization
+2. rm_ref.runtime and OrchestrationResult
+3. payload mapping and cross-layer integration tests
+4. static Python 3.6 compatibility check and import-path cleanup
+```
+
+These decisions define implementation contracts. They do not mean runtime,
+payload mapping, validation serialization, or the static compatibility check
+already exists.

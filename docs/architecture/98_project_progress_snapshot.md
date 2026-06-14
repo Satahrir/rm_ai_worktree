@@ -2,7 +2,7 @@
 
 ## Snapshot Date
 
-2026-06-13
+2026-06-14
 
 ## Purpose
 
@@ -140,6 +140,19 @@ rm_ref.runtime
 OrchestrationResult
 ```
 
+The remaining P1 boundaries are also decided:
+
+```text
+caller injects one explicit SchemaDefinition
+caller injects one already constructed Algorithm instance
+runtime accepts optional payload_by_packet[packet_index][cell_index]
+missing payload entries use []
+extra payload indexes and malformed mappings are setup errors
+ValidationIssue and ValidationResult require stable plain-data to_dict()
+```
+
+These contracts are designed but not implemented.
+
 The supporting core exception-ownership contract is implemented. Core now:
 
 ```text
@@ -152,9 +165,22 @@ preserves the primary error and all finalizer failures
 returns RunResult only when framework cleanup succeeds
 ```
 
-Schema injection, algorithm injection, payload boundaries, validation
-serialization details, and Python 3.6.3 verification remain open architecture
-questions before the complete outer runtime can be implemented.
+The repository has also been exercised with the exact local interpreter:
+
+```text
+D:\ProgramData\miniconda3\envs\py3p6\python.exe
+Python 3.6.3
+pytest 6.2.4
+133 passed
+```
+
+Pytest 6.2.4 warned that it does not recognize the current `pytest.ini`
+`pythonpath` option. A static compatibility checker and explicit compatible
+import-path setup remain implementation work.
+
+The next implementation order is validation serialization, runtime and
+`OrchestrationResult`, payload mapping with cross-layer tests, then the static
+Python 3.6 compatibility gate.
 
 ## Historical Note
 
