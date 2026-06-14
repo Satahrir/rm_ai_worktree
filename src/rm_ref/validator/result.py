@@ -38,11 +38,7 @@ def _plain_sort_key(value):
                 for key in sorted(value, key=_plain_sort_key)
             ),
         )
-    raise TypeError(
-        "serialized values must be dict, list, or scalar, got {0}".format(
-            value_type.__name__
-        )
-    )
+    raise TypeError("serialized values must be dict, list, or scalar")
 
 
 def _to_plain_value(value):
@@ -53,9 +49,7 @@ def _to_plain_value(value):
         for key in value:
             if not _is_scalar(key):
                 raise TypeError(
-                    "serialized dict keys must be scalar, got {0}".format(
-                        type(key).__name__
-                    )
+                    "serialized dict keys must be scalar"
                 )
         result = {}
         for key in sorted(value, key=_plain_sort_key):
@@ -67,9 +61,7 @@ def _to_plain_value(value):
         plain_items = [_to_plain_value(item) for item in value]
         return sorted(plain_items, key=_plain_sort_key)
     raise TypeError(
-        "serialized values must be dict, list, or scalar, got {0}".format(
-            value_type.__name__
-        )
+        "serialized values must be dict, list, or scalar"
     )
 
 

@@ -365,7 +365,7 @@ def test_validation_issue_does_not_call_repr_for_unsupported_value():
 
     issue = ValidationIssue("BAD_VALUE", "bad value", value=BadRepr())
 
-    with pytest.raises(TypeError, match="got BadRepr"):
+    with pytest.raises(TypeError, match="serialized values must be"):
         issue.to_dict()
 
 
@@ -380,7 +380,7 @@ def test_validation_issue_does_not_call_repr_for_unsupported_dict_key():
         value={BadRepr(): 1},
     )
 
-    with pytest.raises(TypeError, match="got BadRepr"):
+    with pytest.raises(TypeError, match="serialized dict keys must be scalar"):
         issue.to_dict()
 
 
@@ -392,7 +392,7 @@ def test_validation_issue_rejects_scalar_subclasses():
     value.items = []
     issue = ValidationIssue("BAD_VALUE", "bad value", value=value)
 
-    with pytest.raises(TypeError, match="got MutableInt"):
+    with pytest.raises(TypeError, match="serialized values must be"):
         issue.to_dict()
 
 
@@ -406,8 +406,35 @@ def test_validation_issue_rejects_container_subclasses():
         value=CustomList([1, 2]),
     )
 
-    with pytest.raises(TypeError, match="got CustomList"):
+    with pytest.raises(TypeError, match="serialized values must be"):
         issue.to_dict()
+
+
+def test_validation_issue_does_not_read_unsupported_type_name():
+    class ExplodingMeta(type):
+        def __getattribute__(cls, name):
+            if name == "__name__":
+                raise RuntimeError("type name must not be read")
+            return type.__getattribute__(cls, name)
+
+    class Unsupported(object, metaclass=ExplodingMeta):
+        pass
+
+    value_issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value=Unsupported(),
+    )
+    key_issue = ValidationIssue(
+        "BAD_VALUE",
+        "bad value",
+        value={Unsupported(): 1},
+    )
+
+    with pytest.raises(TypeError, match="serialized values must be"):
+        value_issue.to_dict()
+    with pytest.raises(TypeError, match="serialized dict keys must be scalar"):
+        key_issue.to_dict()
 
 
 def test_validation_issue_sorts_nan_values_by_float_bits():
