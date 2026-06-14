@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `p1-runtime-boundary-decisions`
-- Status: `IN_PROGRESS`
+- Status: `REVIEW`
 - Role: `arch`
 - Branch: `codex/arch`
 - Worktree: `rm_ref_arch`
@@ -40,3 +40,7 @@ Document the decided P1 schema, algorithm, payload, validation serialization, an
 - ValidationIssue and ValidationResult require stable plain-data to_dict contracts.
 - Python 3.6.3 verification uses D:\ProgramData\miniconda3\envs\py3p6\python.exe plus a future static compatibility check.
 - Keep all runtime, validator, test, and workflow implementation out of this documentation task.
+- Architecture documentation committed as 22af159 on codex/arch.
+- Feature scope check and git diff check passed.
+- No code tests required for the documentation-only change.
+- Existing baseline verified separately on Python 3.6.3: 133 passed with one pytest.ini pythonpath warning.
