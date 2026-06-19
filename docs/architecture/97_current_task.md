@@ -4,27 +4,29 @@
 
 ## Assignment
 
-- Task: `validation-result-serialization-v1`
-- Status: `MERGED`
-- Role: `config`
-- Branch: `codex/config`
-- Worktree: `rm_ref_config`
-- Prompt: `agents/config_agent_prompt.md`
+- Task: `runtime-orchestration-v1`
+- Status: `READY`
+- Role: `runtime`
+- Branch: `codex/runtime`
+- Worktree: `rm_ref_runtime`
+- Prompt: `agents/runtime_agent_prompt.md`
 
 ## Goal
 
-Implement stable plain-data serialization for ValidationIssue and ValidationResult.
+Implement the P1 runtime orchestration boundary with OrchestrationResult, validation gating, payload injection, and cross-layer integration tests.
 
 ## Allowed Paths
 
-- `src/rm_ref/validator/`
-- `tests/test_validator/`
+- `src/rm_ref/runtime/`
+- `tests/test_integration/`
+- `src/rm_ref/__init__.py`
 
 ## Forbidden Paths
 
 - `src/rm_ref/core/`
 - `src/rm_ref/schema/`
 - `src/rm_ref/config/`
+- `src/rm_ref/validator/`
 - `src/rm_ref/packer/`
 - `src/rm_ref/algorithms/`
 - `src/rm_ref/io/`
@@ -32,6 +34,10 @@ Implement stable plain-data serialization for ValidationIssue and ValidationResu
 - `tests/test_core/`
 - `tests/test_schema/`
 - `tests/test_config/`
+- `tests/test_validator/`
+- `tests/test_packer/`
+- `tests/test_algorithms/`
+- `tests/test_utils/`
 - `utils/`
 - `schema_defs/`
 - `docs/`
@@ -40,42 +46,25 @@ Implement stable plain-data serialization for ValidationIssue and ValidationResu
 
 ## Required Checks
 
-- `python -m pytest -q tests/test_validator`
+- `python -m pytest -q tests/test_integration`
 - `python -m pytest -q tests/test_config`
-- `python -m pytest -q tests/test_schema`
+- `python -m pytest -q tests/test_validator`
+- `python -m pytest -q tests/test_core`
 - `python -m pytest -q`
 - `D:\ProgramData\miniconda3\envs\py3p6\python.exe -m pytest -q`
 - `python scripts/agent_workflow.py check-scope`
 
 ## Notes
 
-- Follow the decided Question 6 contract in docs/architecture/14_p1_design_questions.md.
-- ValidationIssue.to_dict() emits every fixed field, including None values.
-- ValidationResult.to_dict() emits ok, errors, and warnings while preserving discovery order.
-- Plain-value conversion supports scalar values, dicts with scalar keys, lists, tuples, sets, and frozensets.
-- Unsupported values and keys raise TypeError; do not stringify them.
-- Serialized output must not share mutable containers with issue values.
-- Do not import serialization helpers from rm_ref.core.
-- Do not change ValidationIssue constructor ownership behavior.
-- Feature implementation committed as e790162 on codex/config.
-- Focused validator tests passed: 16.
-- Config and schema regression tests passed: 17.
-- Modern Python full regression tests passed: 141.
-- Python 3.6.3 full regression tests passed: 141 with the known pytest.ini pythonpath warning.
-- Scope check and git diff check passed.
-- Independent review found blocking edge cases in repr-based error handling, scalar subclasses, and deterministic set ordering.
-- Review fixes committed as e8a539b on codex/config.
-- Unsupported values now report TypeError without invoking repr.
-- Scalar and container subclasses are rejected rather than returned as plain values.
-- Float set ordering uses IEEE-754 bytes for deterministic NaN ordering.
-- Modern Python and Python 3.6.3 full regression tests passed after fixes: 146 each.
-- Post-fix scope check and git diff check passed.
-- Second review found one remaining blocker: unsupported-object type-name lookup can invoke a custom metaclass.
-- Final review fix committed as ded8d75 on codex/config.
-- Unsupported-value and key errors now use fixed TypeError messages without reading object attributes.
-- Final focused tests passed on modern Python and Python 3.6.3: 22 each.
-- Final full regression tests passed on modern Python and Python 3.6.3: 147 each.
-- Final scope check and git diff check passed.
-- Final independent review completed with no findings and approved merge.
-- Merged into main as 2d83da4.
-- Circular containers remain outside the supported plain-data contract.
+- Follow the decided P1 runtime contracts in docs/architecture/13_current_implemented_flow.md and docs/architecture/14_p1_design_questions.md.
+- Add rm_ref.runtime as the outer composition layer; do not move this logic into rm_ref.core.
+- Provide run_case(user_config, schema, algorithm, payload_by_packet=None).
+- Runtime receives an explicit SchemaDefinition and an already constructed Algorithm instance.
+- Core execution must not run when ValidationResult.ok is false.
+- OrchestrationResult statuses are PASS, SETUP_ERROR, VALIDATION_ERROR, and EXECUTION_ERROR.
+- Only ConfigResolutionError and PayloadMappingError are converted to SETUP_ERROR.
+- Payload mapping is payload_by_packet[packet_index][cell_index]; missing entries map to [].
+- Extra packet/cell payload indexes and malformed mappings produce PayloadMappingError and SETUP_ERROR.
+- Payload values are opaque and deep-copied into core config.
+- Do not implement algorithm selection, schema registries, payload file IO, result directories, CLI policy, or packer integration.
+- Keep all code and tests Python 3.6.3-compatible.

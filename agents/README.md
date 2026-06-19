@@ -36,6 +36,7 @@ core_hardening_agent_prompt.md
 config_agent_prompt.md
 packer_agent_prompt.md
 algo_demo_agent_prompt.md
+runtime_agent_prompt.md
 tests_agent_prompt.md
 review_agent_prompt.md
 uvm_table_parser_agent_prompt.md

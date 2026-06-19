@@ -169,6 +169,12 @@ Each agent must stay in its assigned area.
 - `src/rm_ref/algorithms/`
 - `tests/test_algorithms/`
 
+### Runtime agent may modify
+
+- `src/rm_ref/runtime/`
+- `tests/test_integration/`
+- `src/rm_ref/__init__.py` only when needed for package export
+
 ### Tests agent may modify
 
 - `tests/`

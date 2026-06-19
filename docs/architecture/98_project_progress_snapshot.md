@@ -180,8 +180,15 @@ Pytest 6.2.4 warned that it does not recognize the current `pytest.ini`
 `pythonpath` option. A static compatibility checker and explicit compatible
 import-path setup remain implementation work.
 
-The next implementation order is runtime and `OrchestrationResult`, payload
-mapping with cross-layer tests, then the static Python 3.6 compatibility gate.
+The next implementation task is assigned to the runtime agent:
+
+```text
+runtime-orchestration-v1
+```
+
+It should implement `rm_ref.runtime`, `OrchestrationResult`, payload mapping,
+and the first cross-layer integration tests. After that, the next remaining P1
+item is the static Python 3.6 compatibility gate and import-path cleanup.
 
 ## Historical Note
 
