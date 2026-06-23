@@ -41,6 +41,7 @@ tests_agent_prompt.md
 review_agent_prompt.md
 uvm_table_parser_agent_prompt.md
 uvm_table_json_agent_prompt.md
+uvm_table_schema_adapter_agent_prompt.md
 ```
 
 The role prompt defines task-specific behavior. The active status JSON defines

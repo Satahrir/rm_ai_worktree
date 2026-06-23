@@ -4,27 +4,29 @@
 
 ## Assignment
 
-- Task: `runtime-orchestration-v1`
-- Status: `MERGED`
-- Role: `runtime`
-- Branch: `codex/runtime`
-- Worktree: `rm_ref_runtime`
-- Prompt: `agents/runtime_agent_prompt.md`
+- Task: `uvm-table-schema-adapter-v1`
+- Status: `READY`
+- Role: `uvm_table_schema_adapter`
+- Branch: `codex/uvm-json`
+- Worktree: `rm_ref_uvm_json`
+- Prompt: `agents/uvm_table_schema_adapter_agent_prompt.md`
 
 ## Goal
 
-Implement the P1 runtime orchestration boundary with OrchestrationResult, validation gating, payload injection, and cross-layer integration tests.
+Implement the UVM table schema adapter that converts existing parser generic JSON into an RM schema dict accepted by SchemaDefinition.from_dict().
 
 ## Allowed Paths
 
-- `src/rm_ref/runtime/`
-- `tests/test_integration/`
-- `src/rm_ref/__init__.py`
+- `utils/`
+- `schema_defs/uvm_table/`
+- `tests/test_utils/`
+- `tests/fixtures/uvm_table_print/`
+- `docs/interface/`
 
 ## Forbidden Paths
 
 - `src/rm_ref/core/`
-- `src/rm_ref/schema/`
+- `src/rm_ref/runtime/`
 - `src/rm_ref/config/`
 - `src/rm_ref/validator/`
 - `src/rm_ref/packer/`
@@ -32,39 +34,34 @@ Implement the P1 runtime orchestration boundary with OrchestrationResult, valida
 - `src/rm_ref/io/`
 - `src/rm_ref/observability/`
 - `tests/test_core/`
-- `tests/test_schema/`
+- `tests/test_integration/`
 - `tests/test_config/`
 - `tests/test_validator/`
 - `tests/test_packer/`
 - `tests/test_algorithms/`
-- `tests/test_utils/`
-- `utils/`
-- `schema_defs/`
-- `docs/`
-- `scripts/`
+- `docs/architecture/`
 - `agents/`
+- `scripts/`
+- `doc/ref_docs/`
 
 ## Required Checks
 
-- `python -m pytest -q tests/test_integration`
-- `python -m pytest -q tests/test_config`
-- `python -m pytest -q tests/test_validator`
-- `python -m pytest -q tests/test_core`
+- `python -m pytest -q tests/test_utils`
+- `python utils/parse_uvm_table_print.py --help`
+- `python utils/uvm_table_schema_adapter.py --help`
 - `python -m pytest -q`
-- `D:\ProgramData\miniconda3\envs\py3p6\python.exe -m pytest -q`
+- `D:\ProgramData\miniconda3\envs\py3p6\python.exe -m pytest -q tests/test_utils`
 - `python scripts/agent_workflow.py check-scope`
 
 ## Notes
 
-- Follow the decided P1 runtime contracts in docs/architecture/13_current_implemented_flow.md and docs/architecture/14_p1_design_questions.md.
-- Add rm_ref.runtime as the outer composition layer; do not move this logic into rm_ref.core.
-- Provide run_case(user_config, schema, algorithm, payload_by_packet=None).
-- Runtime receives an explicit SchemaDefinition and an already constructed Algorithm instance.
-- Core execution must not run when ValidationResult.ok is false.
-- OrchestrationResult statuses are PASS, SETUP_ERROR, VALIDATION_ERROR, and EXECUTION_ERROR.
-- Only ConfigResolutionError and PayloadMappingError are converted to SETUP_ERROR.
-- Payload mapping is payload_by_packet[packet_index][cell_index]; missing entries map to [].
-- Extra packet/cell payload indexes and malformed mappings produce PayloadMappingError and SETUP_ERROR.
-- Payload values are opaque and deep-copied into core config.
-- Do not implement algorithm selection, schema registries, payload file IO, result directories, CLI policy, or packer integration.
-- Keep all code and tests Python 3.6.3-compatible.
+- Formal input is uvm_table_printer-style text parsed by the existing parser; do not reimplement the text parser.
+- The current fixture uses Type values such as integral[31:23] to carry bit range information.
+- The target table is demo2 and scope_rules must map demo2 to cell.
+- wordN rows are markers and must not become schema fields.
+- Field names must include stable scope, hierarchy, word, and bit-position suffixes.
+- Reserved fields remain in the schema with reserved=true.
+- Payload ranges or placeholders are recorded in report or metadata, not normal SchemaDefinition fields.
+- Output schema dict must be accepted by SchemaDefinition.from_dict().
+- Do not implement runtime integration, run_case integration, payload_by_packet injection, full UserConfig generation, business validation rules, or Chinese description parsing.
+- Keep implementation and tests Python 3.6.3-compatible.

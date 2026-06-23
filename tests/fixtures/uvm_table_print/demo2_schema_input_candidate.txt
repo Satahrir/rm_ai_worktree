@@ -1,0 +1,83 @@
+--------------------------------------------------------------------------------
+Name                         Type                Size    Value
+--------------------------------------------------------------------------------
+demo2                        interface_table     -       @00000010
+
+  cell_param                  cell_param          -       @00000011
+
+    header0                   header_t            -       @00000012
+      word0                   integral[31:0]      32      'h00000000
+      packet_type             integral[31:28]     4       'h0
+      fpga_link_id            integral[27:24]     4       'h0
+      frame_num               integral[23:8]      16      'h0000
+      slot_num                integral[7:0]       8       'h00
+
+      word1                   integral[31:0]      32      'h00000000
+      FreqDomainPos           integral[31:23]     9       'h000
+      SrsCyclicShift          integral[22:19]     4       'h0
+      TransCombOffset         integral[18:16]     3       'h0
+      TransComb               integral[15:14]     2       'h0
+      NrOfSrsPorts            integral[13:12]     2       'h0
+      RSV_word1_b11           integral[11:11]     1       'h0
+      Usage                   integral[10:8]      3       'h0
+      RSV_word1_b7_6          integral[7:6]       2       'h0
+      SrsRsrcId               integral[5:0]       6       'h00
+
+      word2                   integral[31:0]      32      'h00000000
+      StartPos                integral[31:28]     4       'h0
+      RSV_word2_b27_16        integral[27:16]     12      'h000
+      RsrcType                integral[15:14]     2       'h0
+      enGroup                 integral[13:12]     2       'h0
+      SymNum                  integral[11:9]      3       'h0
+      FreqDomainShift         integral[8:0]       9       'h000
+
+      word3                   integral[31:0]      32      'h00000000
+      SrsPosResource          integral[31:31]     1       'h0
+      RSV_word3_b30_29        integral[30:29]     2       'h0
+      SrsPeriod               integral[28:24]     5       'h00
+      Csrs                    integral[23:16]     8       'h00
+      SequenceId              integral[15:0]      16      'h0000
+
+      word4                   integral[31:0]      32      'h00000000
+      SrsOffset               integral[31:15]     17      'h00000
+      RSV_word4_b14_10        integral[14:10]     5       'h00
+      OccIndex                integral[9:8]       2       'h0
+      RepFactor               integral[7:4]       4       'h0
+      Bhop                    integral[3:2]       2       'h0
+      BSrs                    integral[1:0]       2       'h0
+
+    header1                   header_t            -       @00000013
+      word5                   integral[31:0]      32      'h00000000
+      FreqDomainPos           integral[31:23]     9       'h000
+      SrsCyclicShift          integral[22:19]     4       'h0
+      TransCombOffset         integral[18:16]     3       'h0
+      TransComb               integral[15:14]     2       'h0
+      NrOfSrsPorts            integral[13:12]     2       'h0
+      RSV_word5_b11           integral[11:11]     1       'h0
+      Usage                   integral[10:8]      3       'h0
+      RSV_word5_b7_6          integral[7:6]       2       'h0
+      SrsRsrcId               integral[5:0]       6       'h00
+
+      word6                   integral[31:0]      32      'h00000000
+      StartPos                integral[31:28]     4       'h0
+      RSV_word6_b27_16        integral[27:16]     12      'h000
+      RsrcType                integral[15:14]     2       'h0
+      enGroup                 integral[13:12]     2       'h0
+      SymNum                  integral[11:9]      3       'h0
+      FreqDomainShift         integral[8:0]       9       'h000
+
+      word7                   integral[31:0]      32      'h00000000
+      SrsPosResource          integral[31:31]     1       'h0
+      RSV_word7_b30_29        integral[30:29]     2       'h0
+      SrsPeriod               integral[28:24]     5       'h00
+      Csrs                    integral[23:16]     8       'h00
+      SequenceId              integral[15:0]      16      'h0000
+
+      word8                   integral[31:0]      32      'h00000000
+      SrsOffset               integral[31:15]     17      'h00000
+      RSV_word8_b14_10        integral[14:10]     5       'h00
+      OccIndex                integral[9:8]       2       'h0
+      RepFactor               integral[7:4]       4       'h0
+      Bhop                    integral[3:2]       2       'h0
+      BSrs                    integral[1:0]       2       'h0
+--------------------------------------------------------------------------------
