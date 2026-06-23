@@ -323,3 +323,42 @@ Result:
   future work
 - Python 3.6.3 pytest still requires explicit import-path setup because
   pytest 6.2.4 does not recognize the current `pytest.ini` `pythonpath` option
+
+------
+
+## 2026-06-24
+
+### UVM Table Schema Adapter Implementation Ready For Review
+
+Completed on feature branch `codex/uvm-json`:
+
+- implemented `utils/uvm_table_schema_adapter.py`
+- compiled existing parser generic hierarchy into an RM schema dict
+- used `Type` values such as `integral[31:23]` for bit range extraction
+- required explicit scope rules, with the current target `demo2=cell`
+- skipped `wordN` marker rows as schema fields
+- generated stable field names with scope, header path, word, and bit suffixes
+- kept reserved fields in the schema with `reserved=true`
+- generated deterministic demo schema and report files
+- added focused tests and interface documentation
+
+Feature commit:
+
+```text
+99df7cd Add UVM table schema adapter
+```
+
+Tests:
+
+- `python -m pytest -q tests/test_utils`: 52 passed
+- Python 3.6.3 `tests/test_utils` with `PYTHONPATH=src`: 52 passed
+- `python -m pytest -q`: 174 passed
+- parser and schema-adapter `--help`: passed
+- scope check: passed
+
+Result:
+
+- task status set to `REVIEW`
+- feature branch is ready for review
+- runtime integration, `UserConfig` generation, payload injection, and Chinese
+  description rule parsing remain non-goals for this task
