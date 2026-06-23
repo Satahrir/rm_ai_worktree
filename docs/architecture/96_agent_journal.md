@@ -284,3 +284,42 @@ Result:
 - validation serialization contract is implemented
 - circular container serialization remains unsupported
 - `OrchestrationResult` integration remains a future runtime task
+
+------
+
+## 2026-06-24
+
+### Runtime Orchestration Integration
+
+Completed:
+
+- merged runtime commit `18bc014` into `main` as `8767af1`
+- implemented `rm_ref.runtime.run_case()`
+- implemented `OrchestrationResult`
+- implemented `PayloadMappingError`
+- enforced `resolve -> validate -> convert -> inject payload -> execute`
+- mapped only `ConfigResolutionError` and `PayloadMappingError` to
+  `SETUP_ERROR`
+- mapped returned `RunResult.exit_code != 0` to `EXECUTION_ERROR`
+- preserved core framework, lifecycle, result-building, and API misuse
+  exceptions as propagated exceptions
+
+Tests:
+
+- runtime integration tests: 16 passed
+- config tests: 8 passed
+- validator tests: 22 passed
+- core tests: 49 passed
+- full suite on modern Python: 163 passed
+- full suite on Python 3.6.3 with `PYTHONPATH=src`: 163 passed
+- scope check: passed
+
+Result:
+
+- task status set to `MERGED`
+- runtime orchestration and in-memory payload injection are implemented
+- payload file loading, algorithm selection, result directories, CLI policy,
+  packer integration, and static Python 3.6 compatibility checking remain
+  future work
+- Python 3.6.3 pytest still requires explicit import-path setup because
+  pytest 6.2.4 does not recognize the current `pytest.ini` `pythonpath` option

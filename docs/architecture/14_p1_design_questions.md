@@ -156,7 +156,7 @@ core imports remain independent of runtime/schema/config/validator
 ### Status
 
 ```text
-DECIDED
+IMPLEMENTED
 ```
 
 ### Question
@@ -173,7 +173,7 @@ core execution produces RunResult
 algorithm exceptions are captured in RunResult
 ```
 
-There is no existing result object that combines all four outcomes.
+`rm_ref.runtime.OrchestrationResult` now combines these four outcomes.
 
 ### Decision
 
@@ -199,7 +199,8 @@ PASS
 
 SETUP_ERROR
   A specifically classified, expected case-setup failure occurred before core
-  execution. For the current API, ConfigResolutionError is the known example.
+  execution. For the current API, ConfigResolutionError and
+  PayloadMappingError are the known examples.
 
 VALIDATION_ERROR
   ValidationResult.ok is false. Core execution must not run.
@@ -240,12 +241,11 @@ VALIDATION_ERROR
 EXECUTION_ERROR
   validation = successful ValidationResult
   run_result = failed RunResult
-  exception = RunResult.exception, which may be None when failure was reported
-              through diagnostics rather than an unexpected algorithm
-              exception
+  exception = None. Algorithm exception metadata remains owned by
+              RunResult.exception and RunResult.to_dict().
 ```
 
-`OrchestrationResult` must provide deterministic `to_dict()` output for later
+`OrchestrationResult.to_dict()` provides deterministic plain output for later
 JSON, logging, and UVM boundaries.
 
 ### Exception Boundary
@@ -284,6 +284,12 @@ receives an explicit `SchemaDefinition`. A broad
 The decided payload boundary classifies invalid mapping shape and unknown
 packet/cell indexes as `PayloadMappingError -> SETUP_ERROR`. Unexpected
 exceptions raised by payload values or copying still propagate.
+
+The merged runtime implementation catches only `ConfigResolutionError` and
+`PayloadMappingError` as expected setup failures. It does not catch
+`core.run_config()` exceptions. A returned `RunResult.exit_code != 0` maps to
+`EXECUTION_ERROR`; framework, lifecycle, result-building, and API misuse
+exceptions continue to propagate.
 
 ### Core Exception Ownership Contract
 
@@ -522,7 +528,7 @@ contract.
 ### Status
 
 ```text
-DECIDED
+IMPLEMENTED
 ```
 
 ### Question
@@ -684,12 +690,13 @@ orchestration?
 PacketConfig.input_pkt_by_cc stores input values by cell index
 ResolvedConfig.to_core_config() leaves input_pkt_by_cc empty
 the core pipeline exposes the selected value as CellContext input.samples
-there is no standard payload loader or injection API
+there is no standard payload file loader or decoding API
+rm_ref.runtime injects optional in-memory payload mappings
 ```
 
 ### Decision
 
-P1 accepts optional, already prepared in-memory payload through:
+P1 implements optional, already prepared in-memory payload through:
 
 ```python
 payload_by_packet = {
@@ -760,14 +767,14 @@ rm_ref.core
 
 P1 does not define payload file formats or implement file IO.
 
+### Implemented Behavior
+
+The merged runtime implementation validates mapping shape and packet/cell
+indexes, deep-copies values into `PacketConfig.input_pkt_by_cc`, maps invalid
+mapping shape and extra indexes to `PayloadMappingError -> SETUP_ERROR`, and
+keeps payload values opaque.
+
 ### Implementation Ownership
-
-Likely future scope:
-
-```text
-src/rm_ref/runtime/
-tests/test_integration/
-```
 
 `PayloadMappingError` belongs to runtime. File loading or decoding remains a
 separate `rm_ref.io` task.
@@ -906,7 +913,7 @@ errors and warnings retain discovery order
 tuple and set values become deterministic plain lists
 mutating serialized output does not mutate the issue
 unsupported value and key types raise TypeError
-OrchestrationResult embeds validation.to_dict() (future runtime integration)
+OrchestrationResult embeds validation.to_dict()
 ```
 
 ## 8. Question 7: Python 3.6.3 Verification
@@ -1014,15 +1021,14 @@ test import setup that does not depend on an unrecognized pytest.ini option
 
 ## 9. Decision Order
 
-Questions 1-7 are decided. The next implementation order is:
+Questions 1-7 are decided. Runtime orchestration is now implemented. The next
+implementation order is:
 
 ```text
 1. ValidationIssue and ValidationResult serialization
-2. rm_ref.runtime and OrchestrationResult
-3. payload mapping and cross-layer integration tests
-4. static Python 3.6 compatibility check and import-path cleanup
+2. static Python 3.6 compatibility check and import-path cleanup
 ```
 
-These decisions define implementation contracts. They do not mean runtime,
-payload mapping, validation serialization, or the static compatibility check
-already exists.
+These decisions define implementation contracts. Runtime, payload mapping, and
+validation serialization now exist. The static compatibility checker and
+explicit pytest 6.2.4-compatible import-path setup remain future work.

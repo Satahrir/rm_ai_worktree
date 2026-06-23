@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "runtime-orchestration-v1",
-    "status": "READY",
+    "status": "MERGED",
     "goal": "Implement the P1 runtime orchestration boundary with OrchestrationResult, validation gating, payload injection, and cross-layer integration tests.",
     "role": "runtime",
     "branch": "codex/runtime",

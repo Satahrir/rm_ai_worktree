@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `runtime-orchestration-v1`
-- Status: `READY`
+- Status: `MERGED`
 - Role: `runtime`
 - Branch: `codex/runtime`
 - Worktree: `rm_ref_runtime`

@@ -2,7 +2,7 @@
 
 ## Snapshot Date
 
-2026-06-14
+2026-06-24
 
 ## Purpose
 
@@ -73,10 +73,18 @@ scope defaults and enum-name conversion
 structured validation issues
 stable ValidationIssue and ValidationResult serialization
 conversion from ResolvedConfig to core TestcaseConfig
+runtime run_case() outer orchestration
+OrchestrationResult
+payload_by_packet in-memory injection
+cross-layer integration tests
 ```
 
-These components are available as explicit APIs. There is not yet one outer
-runner that automatically resolves, validates, converts, and executes.
+These components are available as explicit APIs. `rm_ref.runtime.run_case()`
+now enforces the normal order:
+
+```text
+resolve -> validate -> convert -> inject payload -> execute
+```
 
 ### UVM Table Utilities
 
@@ -114,10 +122,8 @@ The following areas are not yet complete:
 ```text
 hardware word packer
 concrete demo/SRS/PUSCH/PRACH algorithms
-payload loading and serialization boundaries
+payload file loading and serialization boundaries
 trace/dump/log rendering helpers
-end-to-end integration runner
-integration tests across schema -> validation -> core execution
 package installation metadata
 ```
 
@@ -134,14 +140,14 @@ The current implemented schema-to-result flow and P1 orchestration gaps are now
 documented in `13_current_implemented_flow.md` and
 `14_p1_design_questions.md`.
 
-The outer orchestration package and result model are designed as:
+The outer orchestration package and result model are implemented as:
 
 ```text
 rm_ref.runtime
 OrchestrationResult
 ```
 
-The remaining P1 boundaries are also decided:
+The implemented runtime boundaries are:
 
 ```text
 caller injects one explicit SchemaDefinition
@@ -152,8 +158,9 @@ extra payload indexes and malformed mappings are setup errors
 ValidationIssue and ValidationResult use stable plain-data to_dict()
 ```
 
-The schema, algorithm, and payload contracts remain designed but not
-implemented. Validation serialization is implemented.
+The schema, algorithm, and in-memory payload contracts are implemented.
+Payload file formats, algorithm registries, CLI policy, and result directories
+remain outside runtime.
 
 The supporting core exception-ownership contract is implemented. Core now:
 
@@ -173,22 +180,17 @@ The repository has also been exercised with the exact local interpreter:
 D:\ProgramData\miniconda3\envs\py3p6\python.exe
 Python 3.6.3
 pytest 6.2.4
-147 passed
+163 passed with explicit PYTHONPATH=src
 ```
 
 Pytest 6.2.4 warned that it does not recognize the current `pytest.ini`
 `pythonpath` option. A static compatibility checker and explicit compatible
 import-path setup remain implementation work.
 
-The next implementation task is assigned to the runtime agent:
+The `runtime-orchestration-v1` task is merged.
 
-```text
-runtime-orchestration-v1
-```
-
-It should implement `rm_ref.runtime`, `OrchestrationResult`, payload mapping,
-and the first cross-layer integration tests. After that, the next remaining P1
-item is the static Python 3.6 compatibility gate and import-path cleanup.
+The next remaining P1 item is the static Python 3.6 compatibility gate and
+import-path cleanup.
 
 ## Historical Note
 

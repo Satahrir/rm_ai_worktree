@@ -3,18 +3,19 @@
 ## 1. Purpose
 
 This document describes the flow that is implemented in the repository as of
-2026-06-12.
+2026-06-24.
 
-It is the baseline for the next P1 work:
+It is the baseline after the P1 runtime orchestration merge:
 
 ```text
-1. add an outer orchestration runner
-2. add a minimal cross-layer integration test
-3. audit Python 3.6.3 compatibility
+1. outer orchestration runner implemented
+2. cross-layer integration tests implemented
+3. Python 3.6.3 runtime compatibility verified with explicit PYTHONPATH=src
 ```
 
 This document distinguishes current behavior from planned behavior. It does
-not describe the missing orchestration runner as already implemented.
+not describe planned production IO, CLI, or business-algorithm work as already
+implemented.
 
 ## 2. Current Status
 
@@ -35,28 +36,34 @@ Algorithm.execute_cell(cell_ctx)
 packet/cell traversal and lifecycle finalization
 diagnostic propagation
 RunResult and deterministic to_dict() serialization
+rm_ref.runtime.run_case()
+OrchestrationResult
+PayloadMappingError
 ```
 
 Each layer has focused tests.
 
-### Limitation
+### Runtime Orchestration
 
-There is no single public API that performs:
+`rm_ref.runtime.run_case()` now performs:
 
 ```text
 resolve -> validate -> convert -> inject payload -> execute
 ```
 
-The caller must currently connect these APIs manually. Nothing in
-`rm_ref.core.run_config()` requires the caller to resolve or validate first.
+The caller still owns schema construction, algorithm construction, payload
+loading, CLI policy, and result-directory policy. Direct calls to
+`rm_ref.core.run_config()` remain possible for callers that already have a
+prepared `TestcaseConfig`.
 
-There is no tracked integration test that crosses all implemented layers.
+Tracked integration tests now cross schema, user config, resolver, validator,
+core config conversion, runtime payload injection, core execution, and result
+serialization.
 
-### Planned P1 Work
+### Remaining P1 Work
 
-P1 should add an outer orchestration boundary and one minimal integration
-test. It should not move schema, resolver, validator, payload loading, or
-algorithm selection responsibilities into `rm_ref.core`.
+The remaining P1 work is the static Python 3.6 compatibility checker and an
+explicit import-path setup compatible with pytest 6.2.4.
 
 ## 3. Implemented Flow At A Glance
 
@@ -749,9 +756,9 @@ tests/test_core/
   result construction, deterministic serialization
 ```
 
-### Missing Coverage
+### Integration Coverage
 
-There is no test that executes:
+Integration tests now execute:
 
 ```text
 schema dict
@@ -765,15 +772,16 @@ schema dict
   -> RunResult.to_dict()
 ```
 
-Because each layer is currently tested separately, cross-layer contract drift
-could pass all focused tests.
+They also cover validation gating, setup-error mapping, payload mapping errors,
+caller-payload isolation, algorithm-reported errors, algorithm exceptions
+captured by core, and propagation of core framework exceptions.
 
 ## 14. P1 Outer Runner Design Boundary
 
-### Planned
+### Implemented
 
-P1 should add one outer orchestration API that makes the required order
-explicit.
+P1 now provides one outer orchestration API that makes the required order
+explicit:
 
 Conceptually:
 
@@ -790,9 +798,8 @@ outer runner
   9. return a structured outer result
 ```
 
-The outer orchestration package is designed as `rm_ref.runtime`. Expected case
-outcomes are represented by the designed `OrchestrationResult`; its
-implementation is still planned.
+The outer orchestration package is `rm_ref.runtime`. Expected case outcomes
+are represented by `OrchestrationResult`.
 
 ### Required Boundaries
 
@@ -813,7 +820,7 @@ result directories
 
 ### Validation Gate
 
-The outer runner should make this invariant unavoidable:
+The outer runner makes this invariant unavoidable:
 
 ```text
 core execution is not called when ValidationResult.ok is false
@@ -933,12 +940,9 @@ Those remain separate tasks.
 The current implemented flow has these limitations:
 
 ```text
-no unified outer runner
 validation can be bypassed by direct core calls
-no standard payload loader or payload preparation API
+no standard payload file loader or payload decoding API
 algorithm_name does not select an Algorithm instance
-no cross-layer integration test
-setup/resolution/validation/execution outcomes are not unified
 no packer integration
 no observability renderer
 no static Python 3.6 compatibility checker
@@ -946,7 +950,7 @@ pytest 6.2.4 does not recognize the current pytest.ini pythonpath option
 validation serialization does not support circular containers
 ```
 
-These are implementation gaps, not implemented features.
+These are remaining implementation gaps, not implemented features.
 
 ## 19. P1 Design Questions
 
@@ -960,19 +964,19 @@ docs/architecture/14_p1_design_questions.md
 The current summary is:
 
 ```text
-1. DECIDED: outer orchestration belongs to rm_ref.runtime, with runtime -> core
+1. IMPLEMENTED: outer orchestration belongs to rm_ref.runtime, with runtime -> core
    and no reverse dependency from core.
-2. DECIDED: OrchestrationResult represents expected setup, validation, and
+2. IMPLEMENTED: OrchestrationResult represents expected setup, validation, and
    execution outcomes without swallowing API misuse or framework bugs. The
    supporting core exception-ownership and lifecycle contract is implemented:
    a returned RunResult means framework cleanup succeeded, while framework and
    finalizer failures propagate.
-3. DECIDED: each call receives an explicit, already constructed
+3. IMPLEMENTED: each call receives an explicit, already constructed
    SchemaDefinition; lookup and registry policy remain outside runtime.
-4. DECIDED: each call receives an already constructed Algorithm instance;
+4. IMPLEMENTED: each call receives an already constructed Algorithm instance;
    selection, construction, dependencies, and cross-case reuse are caller
    responsibilities.
-5. DECIDED: optional payload_by_packet[packet_index][cell_index] values are
+5. IMPLEMENTED: optional payload_by_packet[packet_index][cell_index] values are
    injected as opaque data. Missing entries map to [], while extra indexes or
    invalid mapping shape produce PayloadMappingError and SETUP_ERROR.
 6. IMPLEMENTED: ValidationIssue.to_dict() emits all fixed fields and
@@ -984,7 +988,7 @@ The current summary is:
 
 ### 19.1 Payload Boundary
 
-Status: decided, not implemented.
+Status: implemented.
 
 The only implemented facts are:
 
@@ -994,7 +998,7 @@ The core pipeline exposes the selected value as CellContext input.samples.
 ResolvedConfig.to_core_config() does not populate input_pkt_by_cc.
 ```
 
-P1 will accept:
+Runtime accepts:
 
 ```python
 payload_by_packet = {
