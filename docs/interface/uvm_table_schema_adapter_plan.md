@@ -44,6 +44,7 @@ Important correction:
 ```text
 demo2 is the target table to recognize.
 demo2 scope is cell.
+Bit ranges are carried by the Type column, for example integral[31:23].
 ```
 
 `demo1` was useful during exploration, but it is not the target table for this
@@ -115,7 +116,7 @@ source or table name
 field order
 word marker / word index
 field name
-field bit width or bit range
+field bit width and bit range from Type, for example integral[31:23]
 reserved marker
 payload range marker, if present
 ```
@@ -161,7 +162,7 @@ Recommended field shape:
 
 ```json
 {
-  "name": "cell.FreqDomainPos__w3_b14_0",
+  "name": "cell.header0.FreqDomainPos__w3_b14_0",
   "original_name": "FreqDomainPos",
   "scope": "cell",
   "word": 3,
@@ -180,18 +181,18 @@ conversion report.
 Duplicate raw field names are expected. Names must be stable and should not
 depend on encounter-order suffixes like `_1` or `_2`.
 
-Use a deterministic name derived from scope and bit location:
+Use a deterministic name derived from scope, header path, and bit location:
 
 ```text
-<scope>.<raw_name>__w<word>_b<msb>_<lsb>
+<scope>.<header_path>.<raw_name>__w<word>_b<msb>_<lsb>
 ```
 
 Examples:
 
 ```text
-cell.FreqDomainPos__w3_b14_0
-cell.Csrs__w4_b5_0
-cell.BSrs__w4_b8_6
+cell.header0.FreqDomainPos__w3_b14_0
+cell.header0.Csrs__w4_b5_0
+cell.header1.BSrs__w8_b1_0
 ```
 
 Preserve the source name through `original_name` or report metadata so later

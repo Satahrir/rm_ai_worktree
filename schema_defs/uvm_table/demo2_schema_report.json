@@ -1,0 +1,12 @@
+{
+  "schema_id": "demo2/schema/v1",
+  "word_width": 32,
+  "word_count": 9,
+  "field_count": 56,
+  "reserved_count": 10,
+  "duplicate_raw_name_count": 21,
+  "payload_range_count": 0,
+  "skipped_field_count": 0,
+  "warnings": [],
+  "payload_ranges": []
+}
