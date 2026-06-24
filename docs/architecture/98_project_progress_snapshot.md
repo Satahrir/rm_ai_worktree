@@ -2,7 +2,7 @@
 
 ## Snapshot Date
 
-2026-06-24
+2026-06-25
 
 ## Purpose
 
@@ -94,12 +94,17 @@ The utility supports:
 hierarchical uvm_table_printer text parsing
 flat mapped Python para_get output
 deterministic hierarchical JSON output
+schema adapter from parsed UVM table JSON/text to RM SchemaDefinition dict
+deterministic demo2 schema and adapter report generation
 Python 3.6-compatible CLI behavior
 atomic generated-file replacement
 ```
 
-The JSON format preserves source hierarchy. It does not yet map generic JSON
-nodes into business-specific `UserConfig` packet/cell semantics.
+The JSON format preserves source hierarchy. The schema adapter maps demo2 table
+fields into stable cell-scope schema field names accepted by
+`SchemaDefinition.from_dict()`. It does not yet map table values into
+business-specific `UserConfig` packet/cell semantics or directly populate
+`CellConfig`.
 
 ### Workflow Enforcement
 
@@ -188,6 +193,19 @@ Pytest 6.2.4 warned that it does not recognize the current `pytest.ini`
 import-path setup remain implementation work.
 
 The `runtime-orchestration-v1` task is merged.
+
+The `uvm-table-schema-adapter-v1` task is merged. The implemented boundary is:
+
+```text
+uvm_table_printer text
+  -> existing UVM table parser
+  -> RM schema dict
+  -> SchemaDefinition.from_dict()
+```
+
+Runtime integration, direct `CellConfig` population from table text,
+`UserConfig` generation, payload injection from interface tables, and Chinese
+description rule parsing remain future work.
 
 The next remaining P1 item is the static Python 3.6 compatibility gate and
 import-path cleanup.

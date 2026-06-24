@@ -362,3 +362,42 @@ Result:
 - feature branch is ready for review
 - runtime integration, `UserConfig` generation, payload injection, and Chinese
   description rule parsing remain non-goals for this task
+
+------
+
+## 2026-06-25
+
+### UVM Table Schema Adapter Merged
+
+Completed:
+
+- reviewed and merged feature branch `codex/uvm-json` into `main`
+- merged feature commit `99df7cd` through merge commit `31991cf`
+- added `utils/uvm_table_schema_adapter.py`
+- added deterministic demo2 schema and report files under `schema_defs/uvm_table/`
+- added focused adapter tests under `tests/test_utils/`
+- added interface documentation for input assumptions, scope rules, naming,
+  reserved fields, payload placeholders, report fields, and known limitations
+
+Review result:
+
+- the adapter completes the schema boundary:
+  `uvm_table_printer text -> parser JSON/tree -> RM schema dict -> SchemaDefinition.from_dict()`
+- generated names are stable and RM-schema usable, including scope, hierarchy,
+  word, and bit-position suffixes
+- direct population of `CellConfig` from `.txt` values is not implemented and
+  remains future integration work
+
+Tests:
+
+- `python -m pytest -q tests\test_utils --basetemp ...`: 52 passed
+- `python utils\parse_uvm_table_print.py --help`: passed
+- `python utils\uvm_table_schema_adapter.py --help`: passed
+- `python scripts\agent_workflow.py check-scope`: passed before merge
+
+Result:
+
+- task status set to `MERGED`
+- runtime integration, `UserConfig` generation, direct `CellConfig` population,
+  payload injection from table data, and Chinese description rule parsing remain
+  future work

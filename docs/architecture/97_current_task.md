@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `uvm-table-schema-adapter-v1`
-- Status: `REVIEW`
+- Status: `MERGED`
 - Role: `uvm_table_schema_adapter`
 - Branch: `codex/uvm-json`
 - Worktree: `rm_ref_uvm_json`

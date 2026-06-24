@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "uvm-table-schema-adapter-v1",
-    "status": "REVIEW",
+    "status": "MERGED",
     "goal": "Implement the UVM table schema adapter that converts existing parser generic JSON into an RM schema dict accepted by SchemaDefinition.from_dict().",
     "role": "uvm_table_schema_adapter",
     "branch": "codex/uvm-json",
