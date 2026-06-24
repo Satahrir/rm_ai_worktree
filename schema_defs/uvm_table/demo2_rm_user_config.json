@@ -1,0 +1,65 @@
+{
+  "case_name": "uvm_table_config",
+  "algorithm_name": "",
+  "schema_id": "demo2/schema/v1",
+  "global_values": {},
+  "packets": [
+    {
+      "packet_index": 0,
+      "values": {},
+      "cells": [
+        {
+          "cell_index": 0,
+          "values": {
+            "cell.header0.packet_type_w0_b31_28": 0,
+            "cell.header0.fpga_link_id_w0_b27_24": 0,
+            "cell.header0.frame_num_w0_b23_8": 0,
+            "cell.header0.slot_num_w0_b7_0": 0,
+            "cell.header0.freqdomainpos_w1_b31_23": 0,
+            "cell.header0.srscyclicshift_w1_b22_19": 0,
+            "cell.header0.transcomboffset_w1_b18_16": 0,
+            "cell.header0.transcomb_w1_b15_14": 0,
+            "cell.header0.nrofsrsports_w1_b13_12": 0,
+            "cell.header0.usage_w1_b10_8": 0,
+            "cell.header0.srsrsrcid_w1_b5_0": 0,
+            "cell.header0.startpos_w2_b31_28": 0,
+            "cell.header0.rsrctype_w2_b15_14": 0,
+            "cell.header0.engroup_w2_b13_12": 0,
+            "cell.header0.symnum_w2_b11_9": 0,
+            "cell.header0.freqdomainshift_w2_b8_0": 0,
+            "cell.header0.srsposresource_w3_b31_31": 0,
+            "cell.header0.srsperiod_w3_b28_24": 0,
+            "cell.header0.csrs_w3_b23_16": 0,
+            "cell.header0.sequenceid_w3_b15_0": 0,
+            "cell.header0.srsoffset_w4_b31_15": 0,
+            "cell.header0.occindex_w4_b9_8": 0,
+            "cell.header0.repfactor_w4_b7_4": 0,
+            "cell.header0.bhop_w4_b3_2": 0,
+            "cell.header0.bsrs_w4_b1_0": 0,
+            "cell.header1.freqdomainpos_w5_b31_23": 0,
+            "cell.header1.srscyclicshift_w5_b22_19": 0,
+            "cell.header1.transcomboffset_w5_b18_16": 0,
+            "cell.header1.transcomb_w5_b15_14": 0,
+            "cell.header1.nrofsrsports_w5_b13_12": 0,
+            "cell.header1.usage_w5_b10_8": 0,
+            "cell.header1.srsrsrcid_w5_b5_0": 0,
+            "cell.header1.startpos_w6_b31_28": 0,
+            "cell.header1.rsrctype_w6_b15_14": 0,
+            "cell.header1.engroup_w6_b13_12": 0,
+            "cell.header1.symnum_w6_b11_9": 0,
+            "cell.header1.freqdomainshift_w6_b8_0": 0,
+            "cell.header1.srsposresource_w7_b31_31": 0,
+            "cell.header1.srsperiod_w7_b28_24": 0,
+            "cell.header1.csrs_w7_b23_16": 0,
+            "cell.header1.sequenceid_w7_b15_0": 0,
+            "cell.header1.srsoffset_w8_b31_15": 0,
+            "cell.header1.occindex_w8_b9_8": 0,
+            "cell.header1.repfactor_w8_b7_4": 0,
+            "cell.header1.bhop_w8_b3_2": 0,
+            "cell.header1.bsrs_w8_b1_0": 0
+          }
+        }
+      ]
+    }
+  ]
+}
