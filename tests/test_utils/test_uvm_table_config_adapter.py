@@ -98,6 +98,63 @@ def _minimal_document(children):
     }
 
 
+def _mixed_scope_schema():
+    return _minimal_schema(
+        [
+            {
+                "name": "packet.frame_id__w0_b3_0",
+                "original_name": "FrameId",
+                "scope": "packet",
+                "word": 0,
+                "msb": 3,
+                "lsb": 0,
+                "width": 4,
+            },
+            {
+                "name": "cell.gain__w0_b7_4",
+                "original_name": "Gain",
+                "scope": "cell",
+                "word": 0,
+                "msb": 7,
+                "lsb": 4,
+                "width": 4,
+            },
+        ]
+    )
+
+
+def _mixed_scope_document(cell_value, packet_index=None, cell_index=None):
+    packet_root = {
+        "name": "packet_table",
+        "type": "interface_table",
+        "size": None,
+        "children": [
+            {"name": "word0", "type": "integral[31:0]", "size": 32, "value": 0},
+            {"name": "FrameId", "type": "integral[3:0]", "size": 4, "value": 9},
+        ],
+    }
+    cell_root = {
+        "name": "cell_table",
+        "type": "interface_table",
+        "size": None,
+        "children": [
+            {"name": "word0", "type": "integral[31:0]", "size": 32, "value": 0},
+            {
+                "name": "Gain",
+                "type": "integral[7:4]",
+                "size": 4,
+                "value": cell_value,
+            },
+        ],
+    }
+    if packet_index is not None:
+        packet_root["packet_index"] = packet_index
+        cell_root["packet_index"] = packet_index
+    if cell_index is not None:
+        cell_root["cell_index"] = cell_index
+    return {"format": "uvm_table_printer/v1", "roots": [packet_root, cell_root]}
+
+
 def test_uvm_json_values_to_rm_config_single_packet_single_cell():
     result = _bind_fixture()
 
@@ -115,6 +172,61 @@ def test_uvm_json_values_to_rm_config_single_packet_single_cell():
     assert cell_parameters["cell.header1.bsrs_w8_b1_0"] == 0
     assert result.report["input_field_count"] == 56
     assert result.report["bound_field_count"] == 46
+
+
+def test_packet_and_cell_scope_bind_to_separate_core_config_levels():
+    result = bind_config_from_uvm_table_json(
+        _mixed_scope_document(cell_value=5),
+        _mixed_scope_schema(),
+        scope_rules={"packet_table": "packet", "cell_table": "cell"},
+    )
+
+    assert not result.has_errors
+    assert result.report["bound_field_count"] == 2
+
+    config = result.config_dict
+    assert config["packets"][0]["values"]["packet.frame_id_w0_b3_0"] == 9
+    assert config["packets"][0]["cells"][0]["values"]["cell.gain_w0_b7_4"] == 5
+
+    user_config = UserConfig.from_dict(config)
+    resolved = ConfigResolver().resolve(user_config, schema=_mixed_scope_schema())
+    core_config = resolved.to_core_config()
+
+    packet = core_config.packets[0]
+    cell = packet.cells[0]
+    assert packet.packet_index == 0
+    assert packet.parameters["packet.frame_id_w0_b3_0"] == 9
+    assert cell.cell_index == 0
+    assert cell.parameters["cell.gain_w0_b7_4"] == 5
+
+
+def test_packet_scope_value_is_shared_with_multiple_cell_scope_contexts():
+    document = _mixed_scope_document(cell_value=5, packet_index=2, cell_index=0)
+    second_cell_root = deepcopy(document["roots"][1])
+    second_cell_root["cell_index"] = 1
+    second_cell_root["children"][1]["value"] = "0x6"
+    document["roots"].append(second_cell_root)
+
+    result = bind_config_from_uvm_table_json(
+        document,
+        _mixed_scope_schema(),
+        scope_rules={"packet_table": "packet", "cell_table": "cell"},
+    )
+
+    assert not result.has_errors
+    assert result.report["bound_field_count"] == 3
+
+    user_config = UserConfig.from_dict(result.config_dict)
+    resolved = ConfigResolver().resolve(user_config, schema=_mixed_scope_schema())
+    core_config = resolved.to_core_config()
+
+    assert len(core_config.packets) == 1
+    packet = core_config.packets[0]
+    assert packet.packet_index == 2
+    assert packet.parameters == {"packet.frame_id_w0_b3_0": 9}
+    assert [cell.cell_index for cell in packet.cells] == [0, 1]
+    assert packet.cells[0].parameters == {"cell.gain_w0_b7_4": 5}
+    assert packet.cells[1].parameters == {"cell.gain_w0_b7_4": 6}
 
 
 def test_duplicate_raw_name_requires_stable_schema_match():
