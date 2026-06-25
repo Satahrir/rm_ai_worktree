@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `uvm-table-config-adapter-v1`
-- Status: `READY`
+- Status: `MERGED`
 - Role: `uvm_table_config_adapter`
 - Branch: `codex/uvm-config`
 - Worktree: `rm_ref_uvm_config`

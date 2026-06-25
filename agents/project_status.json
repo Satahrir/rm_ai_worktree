@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "uvm-table-config-adapter-v1",
-    "status": "READY",
+    "status": "MERGED",
     "goal": "Implement the minimal UVM table value-binding adapter that converts parser generic JSON values plus SchemaDefinition into an RM UserConfig-compatible dict and verifies the resolver-to-CellConfig path without runtime execution.",
     "role": "uvm_table_config_adapter",
     "branch": "codex/uvm-config",

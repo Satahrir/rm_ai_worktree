@@ -401,3 +401,38 @@ Result:
 - runtime integration, `UserConfig` generation, direct `CellConfig` population,
   payload injection from table data, and Chinese description rule parsing remain
   future work
+
+------
+
+## 2026-06-26
+
+### UVM Table Config Adapter Merged
+
+Completed:
+
+- fast-forward merged feature branch `codex/uvm-config` into `main`
+- merged feature commits `4ac2192` and `8bfcd0c`
+- added `utils/uvm_table_config_adapter.py`
+- added deterministic demo2 UserConfig and adapter report JSON files
+- added focused config adapter tests, including mixed packet/cell scope coverage
+- added interface documentation and design notes for config binding behavior
+
+Review result:
+
+- the adapter completes the boundary:
+  `uvm_table_printer text -> parser JSON/tree -> UserConfig-compatible dict -> ConfigResolver -> CellConfig.parameters`
+- packet-scope values bind to `PacketConfig.parameters`
+- cell-scope values bind to `CellConfig.parameters`
+- runtime integration and `run_case()` execution are not part of this task
+
+Tests:
+
+- `python -m pytest -q tests/test_utils/test_uvm_table_config_adapter.py`: 13 passed
+- `python -m pytest -q tests/test_utils`: 65 passed
+- `python scripts/agent_workflow.py check-scope`: passed after merge
+
+Result:
+
+- task status set to `MERGED`
+- full system test from UVM table text to `run_case()` / algorithm execution
+  remains future work
