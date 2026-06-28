@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `p2b-uvm-table-run-case-smoke`
-- Status: `READY`
+- Status: `REVIEW`
 - Role: `runtime`
 - Branch: `codex/runtime`
 - Worktree: `rm_ref_runtime`

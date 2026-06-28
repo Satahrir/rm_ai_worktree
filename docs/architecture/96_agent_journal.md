@@ -436,3 +436,38 @@ Result:
 - task status set to `MERGED`
 - full system test from UVM table text to `run_case()` / algorithm execution
   remains future work
+
+------
+
+## 2026-06-28
+
+### UVM Table Run Case Smoke Ready For Review
+
+Completed:
+
+- verified feature branch `codex/runtime` in worktree `rm_ref_runtime`
+- confirmed existing integration smoke covers UVM table config adapter output
+  entering `run_case()` with `payload_by_packet=None`
+- confirmed the test-local algorithm observes packet/cell/effective
+  parameters while reserved fields and payload placeholders are not exposed as
+  normal parameters
+
+Tests:
+
+- `python -m pytest -q tests/test_utils`: 65 passed
+- `python -m pytest -q tests/test_integration/test_uvm_table_run_case_smoke.py`:
+  5 passed
+- `python -m pytest -q`: 192 passed
+- `D:\ProgramData\miniconda3\envs\py3p6\python.exe -m pytest -q tests/test_integration/test_uvm_table_run_case_smoke.py`:
+  failed before collection because `rm_ref` was not importable without an
+  explicit `PYTHONPATH`
+- `$env:PYTHONPATH='src'; D:\ProgramData\miniconda3\envs\py3p6\python.exe -m pytest -q tests/test_integration/test_uvm_table_run_case_smoke.py`:
+  5 passed with pytest config/cache warnings
+- `python scripts/agent_workflow.py validate`: passed
+- `python scripts/agent_workflow.py check-scope`: passed
+
+Result:
+
+- task status set to `REVIEW`
+- no feature files were changed during verification
+- import-path cleanup for Python 3.6 pytest remains follow-up work

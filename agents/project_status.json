@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "p2b-uvm-table-run-case-smoke",
-    "status": "READY",
+    "status": "REVIEW",
     "goal": "Implement a minimal runtime integration smoke proving UVM table config adapter output can enter run_case(), drive a small Algorithm, and expose packet/cell parameters without payload injection or simulator integration.",
     "role": "runtime",
     "branch": "codex/runtime",

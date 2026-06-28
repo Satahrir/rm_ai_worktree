@@ -207,6 +207,22 @@ Runtime integration, direct `CellConfig` population from table text,
 `UserConfig` generation, payload injection from interface tables, and Chinese
 description rule parsing remain future work.
 
+The `p2b-uvm-table-run-case-smoke` task is ready for review. The existing
+runtime integration smoke proves:
+
+```text
+uvm_table_printer text
+  -> config adapter UserConfig-compatible dict
+  -> run_case(..., payload_by_packet=None)
+  -> test-local Algorithm
+  -> packet/cell parameter visibility
+```
+
+The focused smoke passes under the default Python environment and under the
+local Python 3.6.3 interpreter when `PYTHONPATH=src` is set explicitly. The
+known pytest 6.2.4 `pythonpath` option warning remains an import-path cleanup
+follow-up.
+
 The next remaining P1 item is the static Python 3.6 compatibility gate and
 import-path cleanup.
 
