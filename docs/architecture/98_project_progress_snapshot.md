@@ -207,16 +207,27 @@ Runtime integration, direct `CellConfig` population from table text,
 `UserConfig` generation, payload injection from interface tables, and Chinese
 description rule parsing remain future work.
 
-The `p2b-uvm-table-run-case-smoke` task is ready for review. The existing
-runtime integration smoke proves:
+The `p2b-uvm-table-runtime-boundary` task is ready for review. The implemented
+formal UVM table runtime boundary proves:
 
 ```text
 uvm_table_printer text
-  -> config adapter UserConfig-compatible dict
-  -> run_case(..., payload_by_packet=None)
-  -> test-local Algorithm
-  -> packet/cell parameter visibility
+  -> rm_ref.io.uvm_table parser
+  -> UserConfig-compatible dict
+  -> rm_ref.runtime.run_uvm_table_text_case()
+  -> rm_ref.runtime.run_case()
+  -> Algorithm cell parameter visibility
 ```
+
+The parser JSON boundary is also exposed through
+`run_uvm_table_json_case()`. Both wrappers return `UvmTableCaseResult` and
+preserve the inner `OrchestrationResult` from `run_case()` without reinterpreting
+runtime PASS, validation, setup, or execution status.
+
+`rm_ref.io.uvm_table.parser` is now a formal package boundary. The config
+adapter boundary currently wraps the stabilized P2A implementation to avoid a
+second long-lived copy; completing that migration into `src/rm_ref/io` remains
+a cleanup item.
 
 The focused smoke passes under the default Python environment and under the
 local Python 3.6.3 interpreter when `PYTHONPATH=src` is set explicitly. The

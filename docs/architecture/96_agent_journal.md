@@ -471,3 +471,41 @@ Result:
 - task status set to `REVIEW`
 - no feature files were changed during verification
 - import-path cleanup for Python 3.6 pytest remains follow-up work
+
+------
+
+## 2026-06-28
+
+### UVM Table Runtime Boundary Ready For Review
+
+Completed:
+
+- added formal UVM table parser package boundary under `rm_ref.io.uvm_table`
+- added `UvmTableCaseResult`, `run_uvm_table_text_case()`, and
+  `run_uvm_table_json_case()`
+- preserved the existing `run_case()` / `OrchestrationResult` model without
+  reinterpreting runtime PASS, validation, setup, or execution statuses
+- added a self-contained system case with `uvm_table_printer` text input
+- verified text and parser-JSON inputs reach a test-local algorithm through
+  `run_case()`
+- verified parse, binding, config, validation, and algorithm-exception
+  boundaries
+
+Tests:
+
+- `python -m pytest -q tests/test_integration/system_cases/uvm_table_printer_to_algorithm`:
+  10 passed
+- `python -m pytest -q tests/test_integration`: 26 passed
+- `python -m pytest -q tests/test_utils`: 65 passed
+- `python -m pytest -q`: 197 passed
+- `$env:PYTHONPATH='src'; D:\ProgramData\miniconda3\envs\py3p6\python.exe -m pytest -q tests/test_integration/system_cases/uvm_table_printer_to_algorithm tests/test_utils/test_uvm_table_config_adapter.py`:
+  23 passed with known pytest config/cache warnings
+- CLI help for parse, schema adapter, and config adapter was checked
+
+Result:
+
+- task status remains `REVIEW`
+- core boundaries remain unchanged
+- config adapter migration is formalized as a package boundary wrapper, with
+  full relocation out of `utils/` left as cleanup to avoid introducing a second
+  long-lived implementation copy

@@ -4,20 +4,22 @@
 
 ## Assignment
 
-- Task: `p2b-uvm-table-run-case-smoke`
+- Task: `p2b-uvm-table-runtime-boundary`
 - Status: `REVIEW`
 - Role: `runtime`
-- Branch: `codex/runtime`
-- Worktree: `rm_ref_runtime`
+- Branch: `main`
+- Worktree: `rm_ref_main`
 - Prompt: `agents/runtime_agent_prompt.md`
 
 ## Goal
 
-Implement a minimal runtime integration smoke proving UVM table config adapter output can enter run_case(), drive a small Algorithm, and expose packet/cell parameters without payload injection or simulator integration.
+Implement the formal UVM table runtime boundary from uvm_table_printer text or parser JSON into run_case(), preserving OrchestrationResult and core boundaries.
 
 ## Allowed Paths
 
 - `tests/test_integration/`
+- `src/rm_ref/io/`
+- `src/rm_ref/runtime/`
 - `docs/architecture/`
 - `tests/fixtures/uvm_table_print/`
 - `agents/`
@@ -31,7 +33,6 @@ Implement a minimal runtime integration smoke proving UVM table config adapter o
 - `src/rm_ref/validator/`
 - `src/rm_ref/packer/`
 - `src/rm_ref/algorithms/`
-- `src/rm_ref/io/`
 - `src/rm_ref/observability/`
 - `tests/test_core/`
 - `tests/test_config/`
@@ -54,8 +55,8 @@ Implement a minimal runtime integration smoke proving UVM table config adapter o
 
 - P2A is complete and merged; do not refactor the UVM parser/schema/config adapters.
 - Use existing run_case(user_config, schema, algorithm, payload_by_packet=None).
-- Add the minimal integration smoke proving adapter-generated UserConfig drives Algorithm execution.
-- The smoke Algorithm may be test-local and should read packet and cell configuration visible at execution time.
+- Add formal run_uvm_table_text_case() and run_uvm_table_json_case() boundary APIs.
+- Preserve run_case() OrchestrationResult without redesigning runtime status semantics.
 - Assert reserved fields and payload placeholders are not visible as normal parameters.
 - Pass payload_by_packet=None only; payload injection remains future work.
 - Do not integrate a UVM simulator, real business algorithm, broad CLI workflow, or new status model.

@@ -1,0 +1,34 @@
+--------------------------------------------------------------------------------
+Name                         Type                Size    Value
+--------------------------------------------------------------------------------
+demo2                        interface_table     -       @00000010
+
+  cell_param                  cell_param          -       @00000011
+
+    header0                   header_t            -       @00000012
+      word0                   integral[31:0]      32      'h12345678
+      packet_type             integral[31:28]     4       'hA
+      fpga_link_id            integral[27:24]     4       'h3
+      frame_num               integral[23:8]      16      'h1234
+      slot_num                integral[7:0]       8       'h56
+
+      word1                   integral[31:0]      32      'h00000000
+      FreqDomainPos           integral[31:23]     9       'h12
+      SrsCyclicShift          integral[22:19]     4       'h5
+      TransCombOffset         integral[18:16]     3       'h2
+      TransComb               integral[15:14]     2       'h1
+      NrOfSrsPorts            integral[13:12]     2       'h3
+      RSV_word1_b11           integral[11:11]     1       'h1
+      Usage                   integral[10:8]      3       'h4
+      RSV_word1_b7_6          integral[7:6]       2       'h3
+      SrsRsrcId               integral[5:0]       6       'h21
+
+      word4                   integral[31:0]      32      'h00000000
+      SrsOffset               integral[31:15]     17      'h1234
+      RSV_word4_b14_10        integral[14:10]     5       'h1F
+      OccIndex                integral[9:8]       2       'h2
+      RepFactor               integral[7:4]       4       'h7
+      Bhop                    integral[3:2]       2       'h1
+      BSrs                    integral[1:0]       2       'h2
+      Payload                 da(integral)        -       -
+--------------------------------------------------------------------------------
