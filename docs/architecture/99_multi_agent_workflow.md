@@ -18,6 +18,7 @@ rm_ref_main        main               integration only
 rm_ref_core        codex/core
 rm_ref_config      codex/config
 rm_ref_packer      codex/packer
+rm_ref_packet      codex/packet
 rm_ref_algo_demo   codex/algo-demo
 rm_ref_runtime     codex/runtime
 rm_ref_tests       codex/tests

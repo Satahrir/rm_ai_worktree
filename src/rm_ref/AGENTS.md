@@ -26,6 +26,9 @@ rm_ref/validator/
 rm_ref/packer/
   Hardware word packing utilities.
 
+rm_ref/packet/
+  Boundary-neutral packet values and packet codecs.
+
 rm_ref/io/
   Payload loading and serialization boundaries.
 
@@ -190,6 +193,7 @@ tests/test_schema/
 tests/test_config/
 tests/test_validator/
 tests/test_packer/
+tests/test_packet/
 tests/test_algorithms/
 tests/test_integration/
 ```

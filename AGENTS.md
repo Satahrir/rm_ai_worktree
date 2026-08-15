@@ -164,6 +164,11 @@ Each agent must stay in its assigned area.
 - `tests/test_packer/`
 - `docs/architecture/08_packer.md` if it exists
 
+### Packet boundary agent may modify
+
+- `src/rm_ref/packet/`
+- `tests/test_packet/`
+
 ### Algorithm demo agent may modify
 
 - `src/rm_ref/algorithms/`
@@ -241,6 +246,7 @@ pytest -q tests/test_schema
 pytest -q tests/test_config
 pytest -q tests/test_validator
 pytest -q tests/test_packer
+pytest -q tests/test_packet
 pytest -q tests/test_algorithms
 pytest -q tests/test_integration
 ```

@@ -247,8 +247,9 @@ artifacts, DUT actual output, and comparison. Independent review returned
 `CHANGES REQUIRED`: the architecture needs explicit no-manifest actual-data
 comparison behavior, Python-3.6-safe provenance ordering, and physical stream
 grouping rules, plus three minor contract clarifications. This is currently
-design work. Revision `14410a4` addresses all six findings and is ready for
-independent closure review;
+design work. Revision `14410a4` addresses all six findings; independent
+re-review closed every finding and approved the narrow packet value/codec
+Slice 1 with one nonblocking comparison-wording follow-up;
 the case DSL, randomizer, packer, codec, and comparison implementation do not
 yet exist.
 

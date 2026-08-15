@@ -611,3 +611,29 @@ Result:
 - fixed packet-hex v1 and core/runtime boundaries remain unchanged
 - architecture returned to independent re-review for six-finding closure and
   narrow Slice 1 implementation readiness
+
+------
+
+## 2026-08-15
+
+### P3A Architecture Approved And Packet Slice 1 Prepared
+
+Re-review result:
+
+- verdict `APPROVE WITH FOLLOW-UP`
+- all six first-review findings closed
+- one nonblocking comparison-section wording cleanup remains
+- narrow Slice 1 approved for packet value objects and identity-free in-memory
+  packet-hex codec only
+
+Workflow preparation:
+
+- added packet boundary ownership for `src/rm_ref/packet/` and
+  `tests/test_packet/`
+- added dedicated packet agent prompt and package rules
+- prepared branch `codex/packet` and worktree `rm_ref_packet`
+
+Result:
+
+- P3A architecture review is closed
+- task `p3b-packet-value-codec-v1` is ready for worktree creation

@@ -32,6 +32,9 @@ tests/test_validator/
 tests/test_packer/
   Word packing tests.
 
+tests/test_packet/
+  Boundary-neutral packet value and codec tests.
+
 tests/test_algorithms/
   Demo and business algorithm tests.
 
@@ -68,6 +71,7 @@ pytest -q tests/test_schema
 pytest -q tests/test_config
 pytest -q tests/test_validator
 pytest -q tests/test_packer
+pytest -q tests/test_packet
 pytest -q tests/test_algorithms
 pytest -q tests/test_integration
 ```
