@@ -4,20 +4,20 @@
 
 ## Assignment
 
-- Task: `p3a-python-case-packet-hex-architecture`
+- Task: `p3a-python-case-packet-hex-architecture-review`
 - Status: `READY`
-- Role: `arch`
-- Branch: `codex/arch`
-- Worktree: `rm_ref_arch`
-- Prompt: `agents/p3a_python_case_packet_hex_arch_prompt.md`
+- Role: `review`
+- Branch: `codex/review`
+- Worktree: `rm_ref_review`
+- Prompt: `agents/p3a_python_case_packet_hex_review_prompt.md`
 
 ## Goal
 
-Document the v1 architecture for pure-Python testcase definitions, deterministic constrained randomization, generic 32-bit packet words, and the shared 9-hex-character packet file format.
+Independently review the P3A pure-Python testcase, deterministic randomization, generic packet-word, and packet-hex v1 architecture before implementation slicing.
 
 ## Allowed Paths
 
-- `docs/architecture/`
+- `docs/review/`
 
 ## Forbidden Paths
 
@@ -27,7 +27,7 @@ Document the v1 architecture for pure-Python testcase definitions, deterministic
 - `schema_defs/`
 - `agents/`
 - `scripts/`
-- `docs/review/`
+- `docs/architecture/`
 
 ## Required Checks
 
@@ -35,10 +35,7 @@ Document the v1 architecture for pure-Python testcase definitions, deterministic
 
 ## Notes
 
-- Create docs/architecture/15_python_case_and_packet_hex_v1.md.
-- Preserve UVM table text parsing as a compatible input path, not a dependency of Python testcase scripts.
-- Internal data uses pure 32-bit words; the IO codec alone adds or removes packet boundary flags.
-- Packet-hex v1 uses exactly 9 hex characters per line with flags 00 middle, 01 first, 10 last, and 11 forbidden.
-- Every packet has at least two words in v1.
-- Document deterministic randomization, manifests, comparisons, ownership, and staged implementation.
-- Do not implement code in this task.
+- Review commit 400b431 and docs/architecture/15_python_case_and_packet_hex_v1.md.
+- Write only docs/review/p3a_python_case_packet_hex_v1_review.md.
+- Validate contract consistency, deterministic randomization, packet-hex examples, boundaries, and Slice 1 readiness.
+- Do not modify the architecture document or implement code.

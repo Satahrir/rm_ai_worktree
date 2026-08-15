@@ -543,3 +543,25 @@ Result:
 - P2B is accepted with follow-up items
 - architecture task `p3a-python-case-packet-hex-architecture` assigned to the
   dedicated architecture worktree
+
+------
+
+## 2026-08-15
+
+### Python Case And Packet Hex V1 Architecture Ready For Review
+
+Completed:
+
+- merged architecture commit `400b431`
+- added `docs/architecture/15_python_case_and_packet_hex_v1.md`
+- documented the trusted Python `CASE` contract, deterministic per-field
+  randomization, generic 32-bit packet data, strict packet-hex v1 codec,
+  manifest, comparison, boundaries, and staged implementation plan
+- confirmed scope checking passed and the documentation-only commit changed
+  no source or tests
+
+Result:
+
+- architecture task moved to independent review
+- review output is restricted to
+  `docs/review/p3a_python_case_packet_hex_v1_review.md`
