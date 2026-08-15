@@ -111,14 +111,25 @@ trusted modules. The loader does not claim to sandbox imports. Import failure,
 missing `CASE`, or an invalid `CASE` shape is a case-load/setup error before
 `run_case()`.
 
+V1 CASE containers are plain `dict` and `list` objects (not subclasses with
+behavior), and every mapping key is a string. A v1 integer is an `int` other
+than `bool`. CASE control values (`version`, `master_seed`, indexes, and
+constraint bounds/choices) use v1 integers. Strings are permitted where this
+contract says a name, enum name, or metadata string; `None` is permitted only
+where this contract explicitly uses an absent index. Floats, bytes, tuples,
+sets, arbitrary objects, and non-string mapping keys are rejected by CASE
+shape validation. A field value may use another scalar type only if the
+existing selected schema/resolver contract explicitly accepts that type; CASE
+normalization must not introduce a new conversion rule for it.
+
 ### 4.2 Required and optional keys
 
 ```text
 CASE
-  version             required; integer 1
+  version             required; v1 integer 1
   case_name           required; non-empty string
   schema_id           required; non-empty string
-  master_seed         required; integer, 0 <= value < 2**64
+  master_seed         required; v1 integer, 0 <= value < 2**64
   algorithm_name      optional metadata; string; default ""
   global_values       optional fixed values; mapping; default {}
   packets             required; non-empty ordered list
@@ -131,12 +142,12 @@ Each packet and cell uses the existing user-config concepts:
 
 ```text
 packet
-  packet_index        required non-negative integer in v1
+  packet_index        required non-negative v1 integer
   values              optional fixed packet-scope values
   cells               required non-empty ordered list
 
 cell
-  cell_index          required non-negative integer in v1
+  cell_index          required non-negative v1 integer
   values              optional fixed cell-scope values
 ```
 
@@ -293,7 +304,7 @@ cell:   scope, field, packet_index, cell_index
 It then defines exactly one domain form:
 
 ```text
-choices: ordered, non-empty list of distinct integers or enum names
+choices: non-empty list of distinct v1 integers or enum names
 
 or
 
@@ -304,7 +315,10 @@ V1 has no predicate callbacks, weighted values, cross-field constraints, or
 retry loops. Multiple constraints targeting the same field instance are an
 error. Constraints are converted to numeric values using the same enum-name
 rules as normal config resolution and must be a subset of the schema-legal
-domain. An empty intersection is an error.
+domain. An empty intersection is an error. Author order is accepted only as
+readable CASE input; it is not a sampling rule. After enum conversion, the
+distinct numeric values are sorted in numeric order for sampling and for the
+reproducibility domain recorded in provenance.
 
 ### 5.3 Resolution precedence
 
@@ -363,6 +377,7 @@ Sampling is digest-based so its output does not depend on changes to
 
 1. Put a candidate domain in canonical order. Integer ranges use numeric order;
    choices and enums are normalized to distinct integers and sorted numerically.
+   The recorded sampling domain is this canonical order, never author order.
 2. Let `n` be the domain size.
 3. Starting at counter zero, compute
    `SHA256(raw_32_byte_field_seed_digest || counter_as_8_byte_big_endian)`.
@@ -457,6 +472,18 @@ actual
 A bundle preserves packet order and requires unique
 `(packet_index, cell_index)` identities. The same value types are used at every
 stage; the role describes provenance, not a different binary representation.
+`PacketBundle` represents exactly one logical stream. It does not represent a
+directory, a multi-file artifact, or a physical lane collection.
+
+An interface artifact is an external ordered mapping of named stream/layout
+descriptors to one `PacketBundle` and one manifest per stream. Each descriptor
+defines its artifact name, stream name, antenna/lane order when applicable,
+and its reversible physical layout policy. This metadata belongs to the
+interface adapter and its manifest, not to core identity. If one physical file
+needs multiple records for the same cell, its adapter must first define a
+reversible aggregate word layout and create one v1 `PacketWords` for that cell;
+it must not add `stream_id` to `(packet_index, cell_index)` or allow duplicate
+identities in a bundle.
 
 Packet words are transport values. They do not expose schema fields and do not
 belong in static `CellConfig.parameters`. The existing runtime payload value is
@@ -529,11 +556,12 @@ and physical-file layout adapter must consume the same canonical logical
 stimulus and record the layout policy in provenance. They must not independently
 regenerate random stimulus.
 
-An interface layout adapter may serialize four antennas as four packet-hex
-files, one bundle per file, or interleave the four antennas into one bundle and
-one file. File count, antenna order, interleave stride, and per-antenna word
-packing are interface policy outside core. They do not require four RM cells or
-four `payload_by_packet` entries.
+An interface layout adapter may serialize four antennas as four named stream
+artifacts, each with one bundle/file/manifest, or aggregate the four antennas
+reversibly into one logical stream and one bundle/file/manifest. File count,
+stream names, antenna order, interleave stride, and per-antenna word packing
+are interface policy outside core. They do not require four RM cells or four
+`payload_by_packet` entries.
 
 The normal generated-stimulus flow is memory-first: prepare the logical
 stimulus once, inject its RM view, and export its RTL view. The RM algorithm does
@@ -579,6 +607,13 @@ provide the mechanics, while schema or algorithm adapters supply those
 policies. Errors and optional debug records should include original value,
 selected policy, intermediate quantized values, saturation/truncation events,
 and final unsigned word.
+
+These helpers are not part of Slice 1. Before any numeric-helper slice is
+implemented, a separate approved contract must define accepted input types,
+width bounds, named rounding modes and tie rules, overflow/saturation and
+truncation behavior, signedness, component order, and deterministic
+known-answer vectors. Implementations must not rely on platform float behavior
+where an integer/reference-vector rule has not been specified.
 
 ## 8. Packet-Hex V1
 
@@ -670,11 +705,23 @@ line  5:    last
 Packet-hex itself carries no packet or cell indexes. The low-level decoder
 therefore returns an ordered codec result containing packet ordinal zero, one,
 and so on plus each packet's pure word list; it does not invent identities or
-construct a `PacketBundle`. A binding step uses a manifest or an explicitly
-supplied expected bundle to map those ordinals to `(packet_index, cell_index)`
-identities and then constructs the bundle. The number and order of identity
-entries must exactly match the decoded packets. This keeps the strict
-`PacketWords` identity rule while avoiding hidden index conventions.
+construct a `PacketBundle`. Actual-data identity handling has two explicit
+modes:
+
+1. **Actual manifest present.** Bind every decoded ordinal from that actual
+   manifest, then construct the actual `PacketBundle`. The manifest packet
+   entries must exactly match the decoded packet count and ordinal order; a
+   disagreement is an artifact-binding error with manifest and decode context.
+2. **No actual manifest.** Compare the identity-free decoded packet count with
+   the expected bundle count first. A missing or extra packet returns a
+   structured comparison mismatch, not a setup/binding exception. Only when
+   the counts match may the expected bundle bind aligned ordinals to
+   `(packet_index, cell_index)` identities and construct the actual bundle for
+   identity/order/word comparison.
+
+This keeps the strict `PacketWords` identity rule while avoiding hidden index
+conventions and preserves packet-count diagnostics when raw actual data has no
+metadata.
 
 ### 8.4 Malformed examples
 
@@ -822,9 +869,25 @@ reserved_default
 
 Manifest JSON uses sorted object keys, UTF-8, two-space indentation, and LF
 line endings. Packet entries retain bundle order; field provenance is sorted by
-scope order (`global`, `packet`, `cell`), packet index, cell index, and normalized
-field name. The generator version identifies the producing implementation; the
-format and seed algorithm versions remain independently fixed by their names.
+the explicit tuple below, rather than by comparing nullable indexes directly:
+
+```text
+(scope_rank, packet_present_rank, packet_index_or_zero,
+ cell_present_rank, cell_index_or_zero, normalized_field_name)
+
+scope_rank:          global=0, packet=1, cell=2
+packet_present_rank: absent=0, present=1
+cell_present_rank:   absent=0, present=1
+```
+
+For an absent index, its paired `*_index_or_zero` component is zero. This fixed
+tuple never compares `None` with an integer and is the only provenance order in
+v1. Every manifest mapping key, including nested `extensions` keys, is a string;
+every manifest value is JSON-compatible before serialization. The canonical
+writer uses `json.dumps(..., sort_keys=True, ensure_ascii=False, indent=2)` and
+LF line endings. The generator version identifies the producing implementation;
+the format and seed algorithm versions remain independently fixed by their
+names.
 
 V1 does not require a packet-file hash or CASE-source hash. The required
 top-level `extensions` mapping is the reserved compatibility point for later
@@ -839,11 +902,16 @@ it does not require changing packet-hex v1.
 Comparison operates only on reconstructed `PacketBundle` objects. It never
 compares the 36-bit text records, boundary nibbles, whitespace, or letter case.
 
-The v1 comparator checks in this order:
+The v1 comparator accepts either an identity-bound actual bundle or an
+identity-free decoded actual result under the two modes in Section 8.3. With no
+actual manifest it first returns a structured packet-count mismatch if decoded
+and expected counts differ; it does not attempt identity binding. Otherwise,
+after the applicable binding succeeds, it checks in this order:
 
 1. Both bundles have permitted roles (`expected` and `actual`).
 2. Packet counts match.
-3. Packet identities and order match after manifest binding.
+3. Packet identities and order match after manifest binding or aligned expected
+   binding.
 4. Word counts match for each packet.
 5. Every unsigned 32-bit word matches at the same ordinal.
 
@@ -993,7 +1061,9 @@ Runtime owns a pure bundle-to-`payload_by_packet` adapter without changing
 packet ordinals to packet/cell identities.
 
 Tests cover identity validation, copying/non-mutation, missing payload behavior,
-packet ranges, deterministic JSON, and manifest/hex disagreement.
+packet ranges, deterministic JSON (including global/null-index provenance),
+actual-manifest binding, no-manifest count mismatch as a structured comparison
+result, and manifest/hex disagreement.
 
 ### Slice 3: CASE normalization and deterministic randomization
 
@@ -1003,7 +1073,8 @@ digest-based sampling, and field provenance. IO owns trusted module import only.
 Tests cover precedence, fixed `cell_id=0`, reserved fields, enum/range/width
 domains, invalid constraints, stable known-answer seed vectors, field-order
 independence, unrelated-field independence, repeated-run identity, manifest
-provenance, and no input mutation under Python 3.6.3.
+provenance, v1 integer/bool rejection, canonical choices order, and no input
+mutation under Python 3.6.3.
 
 ### Slice 4: Packer integration
 
@@ -1042,7 +1113,9 @@ They must not use `dataclasses`, `Protocol`, `Literal`, `TypedDict`, built-in
 generic syntax, `X | Y`, `match/case`, or newer-only standard library APIs.
 Stable serialization must not depend on mapping insertion order. SHA-256,
 explicit sorting, integer arithmetic, and `json.dumps(..., sort_keys=True)` are
-available in Python 3.6.3.
+available in Python 3.6.3. V1 sort keys use only integers and strings; they
+never rely on Python comparing `None` with an integer. `bool` is rejected where
+this architecture requires a v1 integer.
 
 ## 15. Limitations And Open Questions
 
@@ -1053,8 +1126,8 @@ available in Python 3.6.3.
 - Constraints cannot relate two fields or call arbitrary Python predicates.
 - Packet-hex requires at least two words and carries no identity metadata.
 - One runtime packet/cell identity maps to one logical payload value. The value
-  may contain multiple antennas, but each physical multi-file or interleaved
-  layout requires an interface-specific adapter.
+  may contain multiple antennas, but each physical multi-file or aggregate
+  layout requires an interface-specific artifact/stream adapter.
 - Large packet files are modeled in memory; streaming APIs are deferred.
 - Output-to-word conversion remains algorithm-specific until each algorithm's
   output schema is designed.
@@ -1072,9 +1145,9 @@ available in Python 3.6.3.
 4. V1 models one logical payload value for each `(packet_index, cell_index)`
    identity. That value may hold all four antennas, for example as a list of
    four sample arrays. An interface adapter decides whether the RTL view uses
-   four files or one interleaved file. A generic `stream_id` is unnecessary in
-   RM core; an adapter may add interface metadata to its manifest extension if
-   required.
+   four named stream artifacts or one reversibly aggregated file. A generic
+   `stream_id` is unnecessary in RM core; artifact/stream descriptors remain
+   external and may use manifest extensions if required.
 5. Each business algorithm is composed from smaller submodules whose outputs
    may be ordinary variables. The exact adapter that groups those variables
    into intermediate or expected packet boundaries remains algorithm-specific
