@@ -4,20 +4,20 @@
 
 ## Assignment
 
-- Task: `p3a-python-case-packet-hex-architecture-revision`
+- Task: `p3a-python-case-packet-hex-architecture-rereview`
 - Status: `READY`
-- Role: `arch`
-- Branch: `codex/arch`
-- Worktree: `rm_ref_arch`
-- Prompt: `agents/p3a_python_case_packet_hex_arch_revision_prompt.md`
+- Role: `review`
+- Branch: `codex/review`
+- Worktree: `rm_ref_review`
+- Prompt: `agents/p3a_python_case_packet_hex_rereview_prompt.md`
 
 ## Goal
 
-Revise the P3A architecture to close the reviewed identity-binding, canonical-ordering, stream-grouping, scalar-type, choices-order, and numeric-helper contract gaps.
+Independently verify that revision 14410a4 closes all six P3A architecture findings and determine whether narrow Slice 1 implementation may begin.
 
 ## Allowed Paths
 
-- `docs/architecture/`
+- `docs/review/`
 
 ## Forbidden Paths
 
@@ -27,7 +27,7 @@ Revise the P3A architecture to close the reviewed identity-binding, canonical-or
 - `schema_defs/`
 - `agents/`
 - `scripts/`
-- `docs/review/`
+- `docs/architecture/`
 
 ## Required Checks
 
@@ -35,8 +35,8 @@ Revise the P3A architecture to close the reviewed identity-binding, canonical-or
 
 ## Notes
 
-- Revise docs/architecture/15_python_case_and_packet_hex_v1.md using the CHANGES REQUIRED review report.
-- Close the identity-binding/count-comparison blocker and both major findings.
-- Close the bool/scalar, choices ordering, and numeric-helper minor findings.
-- Preserve fixed packet-hex v1 encoding and unchanged core/runtime contracts.
-- Do not implement code in this task.
+- Re-review commit 14410a4 against docs/review/p3a_python_case_packet_hex_v1_review.md.
+- Write only docs/review/p3a_python_case_packet_hex_v1_rereview.md.
+- Mark each original blocker, major, and minor finding CLOSED or OPEN with evidence.
+- Determine whether the narrow Slice 1 packet model and identity-free codec implementation may begin.
+- Do not modify architecture or source code.

@@ -589,3 +589,25 @@ Result:
 - review report merged as
   `docs/review/p3a_python_case_packet_hex_v1_review.md`
 - architecture revision task assigned before source implementation begins
+
+------
+
+## 2026-08-15
+
+### Python Case And Packet Hex V1 Architecture Revised
+
+Completed:
+
+- merged revision commit `14410a4`
+- separated no-manifest packet-count comparison from identity binding
+- defined a Python-3.6-safe provenance sort tuple
+- made logical stream and physical artifact grouping explicit
+- defined bool/scalar/container/key rules for CASE data
+- canonicalized choices sampling and provenance order
+- deferred numeric helpers until a separate exact numeric contract exists
+
+Result:
+
+- fixed packet-hex v1 and core/runtime boundaries remain unchanged
+- architecture returned to independent re-review for six-finding closure and
+  narrow Slice 1 implementation readiness
