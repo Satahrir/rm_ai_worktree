@@ -207,7 +207,8 @@ Runtime integration, direct `CellConfig` population from table text,
 `UserConfig` generation, payload injection from interface tables, and Chinese
 description rule parsing remain future work.
 
-The `p2b-uvm-table-runtime-boundary` task is ready for review. The implemented
+The `p2b-uvm-table-runtime-boundary` task is implemented and independently
+reviewed with an `APPROVE WITH FOLLOW-UP` disposition. The implemented
 formal UVM table runtime boundary proves:
 
 ```text
@@ -234,8 +235,17 @@ local Python 3.6.3 interpreter when `PYTHONPATH=src` is set explicitly. The
 known pytest 6.2.4 `pythonpath` option warning remains an import-path cleanup
 follow-up.
 
-The next remaining P1 item is the static Python 3.6 compatibility gate and
-import-path cleanup.
+The review identified two tracked follow-ups: make the UVM adapter/parser
+package boundary independent of the repository-level `utils` layout, and make
+Python 3.6 pytest imports reliable without the newer pytest `pythonpath`
+option.
+
+The next architecture task defines a pure-Python testcase script contract,
+deterministic constrained field randomization, a generic packet-word data
+model, and a shared packet-hex v1 format for RTL input, RM intermediate/final
+artifacts, DUT actual output, and comparison. This is currently design work;
+the case DSL, randomizer, packer, codec, and comparison implementation do not
+yet exist.
 
 ## Historical Note
 

@@ -4,20 +4,20 @@
 
 ## Assignment
 
-- Task: `p2b-uvm-table-runtime-boundary-review`
+- Task: `p3a-python-case-packet-hex-architecture`
 - Status: `READY`
-- Role: `review`
-- Branch: `codex/review`
-- Worktree: `rm_ref_review`
-- Prompt: `agents/p2b_uvm_table_runtime_review_prompt.md`
+- Role: `arch`
+- Branch: `codex/arch`
+- Worktree: `rm_ref_arch`
+- Prompt: `agents/p3a_python_case_packet_hex_arch_prompt.md`
 
 ## Goal
 
-Independently review the formal UVM table runtime boundary from uvm_table_printer text or parser JSON into run_case(), and record a merge recommendation.
+Document the v1 architecture for pure-Python testcase definitions, deterministic constrained randomization, generic 32-bit packet words, and the shared 9-hex-character packet file format.
 
 ## Allowed Paths
 
-- `docs/review/`
+- `docs/architecture/`
 
 ## Forbidden Paths
 
@@ -27,19 +27,18 @@ Independently review the formal UVM table runtime boundary from uvm_table_printe
 - `schema_defs/`
 - `agents/`
 - `scripts/`
-- `docs/architecture/`
+- `docs/review/`
 
 ## Required Checks
 
-- `python -m pytest -q tests/test_integration/system_cases/uvm_table_printer_to_algorithm`
-- `python -m pytest -q tests/test_utils`
-- `python -m pytest -q`
-- `$env:PYTHONPATH='src'; D:\ProgramData\miniconda3\envs\py3p6\python.exe -m pytest -q tests/test_integration/system_cases/uvm_table_printer_to_algorithm`
 - `python scripts/agent_workflow.py check-scope`
 
 ## Notes
 
-- Review commit 33306bc against its parent and the active UVM table boundary contracts.
-- Write only docs/review/p2b_uvm_table_runtime_boundary_review.md.
-- Do not modify production code, tests, workflow status, adapters, or generated artifacts.
-- The known Python 3.6 pytest import-path issue is a follow-up candidate; assess it without fixing it.
+- Create docs/architecture/15_python_case_and_packet_hex_v1.md.
+- Preserve UVM table text parsing as a compatible input path, not a dependency of Python testcase scripts.
+- Internal data uses pure 32-bit words; the IO codec alone adds or removes packet boundary flags.
+- Packet-hex v1 uses exactly 9 hex characters per line with flags 00 middle, 01 first, 10 last, and 11 forbidden.
+- Every packet has at least two words in v1.
+- Document deterministic randomization, manifests, comparisons, ownership, and staged implementation.
+- Do not implement code in this task.

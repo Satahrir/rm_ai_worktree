@@ -509,3 +509,37 @@ Result:
 - config adapter migration is formalized as a package boundary wrapper, with
   full relocation out of `utils/` left as cleanup to avoid introducing a second
   long-lived implementation copy
+
+------
+
+## 2026-08-15
+
+### P2B Runtime Boundary Reviewed And Next Architecture Task Assigned
+
+Completed:
+
+- independently reviewed commit `33306bc`
+- recorded an `APPROVE WITH FOLLOW-UP` disposition in
+  `docs/review/p2b_uvm_table_runtime_boundary_review.md`
+- confirmed the focused UVM system tests, utility tests, full suite, and
+  Python 3.6 focused run passed with the documented import-path setup
+- retained follow-ups for the package-safe UVM adapter boundary and Python 3.6
+  pytest import setup
+
+Next direction agreed with the user:
+
+- preserve UVM table text parsing as a compatible configuration source
+- define trusted pure-Python testcase modules with a stable `CASE` contract
+- randomize omitted eligible fields deterministically from a case seed and
+  schema/testcase constraints while preserving explicit fixed values
+- use pure 32-bit packet words internally for stimulus, intermediate data,
+  expected output, actual output, and comparison
+- add packet boundary flags only at the shared text IO boundary
+- define packet-hex v1 as exactly 9 hex characters per line with `00` middle,
+  `01` first, `10` last, `11` forbidden, and at least two words per packet
+
+Result:
+
+- P2B is accepted with follow-up items
+- architecture task `p3a-python-case-packet-hex-architecture` assigned to the
+  dedicated architecture worktree
