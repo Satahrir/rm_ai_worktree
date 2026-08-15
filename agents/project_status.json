@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "p3b-packet-value-codec-v1",
-    "status": "READY_FOR_WORKTREE",
+    "status": "READY",
     "goal": "Implement the boundary-neutral packet value model and strict identity-free in-memory packet-hex v1 codec from the approved P3A Slice 1 architecture.",
     "role": "packet",
     "branch": "codex/packet",

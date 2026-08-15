@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `p3b-packet-value-codec-v1`
-- Status: `READY_FOR_WORKTREE`
+- Status: `READY`
 - Role: `packet`
 - Branch: `codex/packet`
 - Worktree: `rm_ref_packet`
