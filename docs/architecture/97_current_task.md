@@ -4,20 +4,20 @@
 
 ## Assignment
 
-- Task: `p3a-python-case-packet-hex-architecture-review`
+- Task: `p3a-python-case-packet-hex-architecture-revision`
 - Status: `READY`
-- Role: `review`
-- Branch: `codex/review`
-- Worktree: `rm_ref_review`
-- Prompt: `agents/p3a_python_case_packet_hex_review_prompt.md`
+- Role: `arch`
+- Branch: `codex/arch`
+- Worktree: `rm_ref_arch`
+- Prompt: `agents/p3a_python_case_packet_hex_arch_revision_prompt.md`
 
 ## Goal
 
-Independently review the P3A pure-Python testcase, deterministic randomization, generic packet-word, and packet-hex v1 architecture before implementation slicing.
+Revise the P3A architecture to close the reviewed identity-binding, canonical-ordering, stream-grouping, scalar-type, choices-order, and numeric-helper contract gaps.
 
 ## Allowed Paths
 
-- `docs/review/`
+- `docs/architecture/`
 
 ## Forbidden Paths
 
@@ -27,7 +27,7 @@ Independently review the P3A pure-Python testcase, deterministic randomization, 
 - `schema_defs/`
 - `agents/`
 - `scripts/`
-- `docs/architecture/`
+- `docs/review/`
 
 ## Required Checks
 
@@ -35,7 +35,8 @@ Independently review the P3A pure-Python testcase, deterministic randomization, 
 
 ## Notes
 
-- Review commit 400b431 and docs/architecture/15_python_case_and_packet_hex_v1.md.
-- Write only docs/review/p3a_python_case_packet_hex_v1_review.md.
-- Validate contract consistency, deterministic randomization, packet-hex examples, boundaries, and Slice 1 readiness.
-- Do not modify the architecture document or implement code.
+- Revise docs/architecture/15_python_case_and_packet_hex_v1.md using the CHANGES REQUIRED review report.
+- Close the identity-binding/count-comparison blocker and both major findings.
+- Close the bool/scalar, choices ordering, and numeric-helper minor findings.
+- Preserve fixed packet-hex v1 encoding and unchanged core/runtime contracts.
+- Do not implement code in this task.

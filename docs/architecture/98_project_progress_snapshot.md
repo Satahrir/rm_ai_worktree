@@ -243,8 +243,11 @@ option.
 The P3A architecture document now defines a pure-Python testcase script contract,
 deterministic constrained field randomization, a generic packet-word data
 model, and a shared packet-hex v1 format for RTL input, RM intermediate/final
-artifacts, DUT actual output, and comparison. It is ready for independent
-review. This is currently design work;
+artifacts, DUT actual output, and comparison. Independent review returned
+`CHANGES REQUIRED`: the architecture needs explicit no-manifest actual-data
+comparison behavior, Python-3.6-safe provenance ordering, and physical stream
+grouping rules, plus three minor contract clarifications. This is currently
+design work;
 the case DSL, randomizer, packer, codec, and comparison implementation do not
 yet exist.
 

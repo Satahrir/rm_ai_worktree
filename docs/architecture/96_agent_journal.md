@@ -565,3 +565,27 @@ Result:
 - architecture task moved to independent review
 - review output is restricted to
   `docs/review/p3a_python_case_packet_hex_v1_review.md`
+
+------
+
+## 2026-08-15
+
+### Python Case And Packet Hex V1 Architecture Changes Requested
+
+Review result:
+
+- verdict `CHANGES REQUIRED`
+- one blocker: no-manifest actual identity fallback prevents structured packet
+  count mismatch comparison
+- two major findings: manifest provenance ordering is incomplete for
+  null/integer indexes, and physical stream/artifact grouping is implicit
+- three minor findings: bool/scalar rules, choices canonical order, and numeric
+  helper input/rounding contracts need clarification
+- narrow Slice 1 remains feasible only for packet value objects and the
+  identity-free codec after ownership is assigned for `src/rm_ref/packet/`
+
+Result:
+
+- review report merged as
+  `docs/review/p3a_python_case_packet_hex_v1_review.md`
+- architecture revision task assigned before source implementation begins
