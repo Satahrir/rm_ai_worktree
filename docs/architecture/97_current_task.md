@@ -5,7 +5,7 @@
 ## Assignment
 
 - Task: `p4a-runtime-data-ownership-core-contract-hardening`
-- Status: `READY_FOR_WORKTREE`
+- Status: `READY`
 - Role: `phase1-refactor`
 - Branch: `codex/phase1-runtime-contracts`
 - Worktree: `rm_ref_phase1`

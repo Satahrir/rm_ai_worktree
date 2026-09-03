@@ -5,7 +5,7 @@
   "integration_worktree": "rm_ref_main",
   "active_task": {
     "id": "p4a-runtime-data-ownership-core-contract-hardening",
-    "status": "READY_FOR_WORKTREE",
+    "status": "READY",
     "goal": "Perform a behavior-preserving Phase 1 refactor of payload ownership, static config construction, and the CellContext public contract.",
     "role": "phase1-refactor",
     "branch": "codex/phase1-runtime-contracts",
