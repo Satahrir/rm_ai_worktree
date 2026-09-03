@@ -33,6 +33,7 @@ Each role has one prompt:
 arch_agent_prompt.md
 core_agent_prompt.md
 core_hardening_agent_prompt.md
+phase1_refactor_agent_prompt.md
 config_agent_prompt.md
 packer_agent_prompt.md
 packet_agent_prompt.md

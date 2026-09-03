@@ -654,3 +654,29 @@ Completed:
 Result:
 
 - packet Slice 1 may begin after successful feature preflight
+
+------
+
+## 2026-09-04
+
+### Phase 1 Runtime Contract Refactor Prioritized
+
+Decision:
+
+- retained approved task `p3b-packet-value-codec-v1` as a lower-priority
+  follow-up without marking it complete or cancelled
+- prioritized behavior-preserving Phase 1 work on payload ownership, static
+  config mutation, and the `CellContext` public contract
+- assigned dedicated branch `codex/phase1-runtime-contracts` and worktree
+  `rm_ref_phase1`
+- restricted implementation to `core`, `config`, `runtime`, and their focused
+  tests
+
+Baseline:
+
+- default-environment full regression passed with `197 passed`
+
+Result:
+
+- task `p4a-runtime-data-ownership-core-contract-hardening` is prepared for
+  worktree creation

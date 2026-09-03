@@ -2,7 +2,7 @@
 
 ## Snapshot Date
 
-2026-06-25
+2026-09-04
 
 ## Purpose
 
@@ -136,6 +136,16 @@ The repository should be described as a tested minimal framework and supporting
 utilities, not as a complete production RM flow.
 
 ## Current Direction
+
+The active priority is Phase 1 runtime-data ownership and core-contract
+hardening. It is a behavior-preserving refactor limited to reducing redundant
+payload copies, removing hidden static-config mutation, and clarifying the
+protocol-neutral `CellContext` public API. The current vertical execution flow
+and public contracts remain in force.
+
+The approved `p3b-packet-value-codec-v1` Slice 1 task is retained as a
+lower-priority follow-up. Its architecture approval, packet branch, and packet
+worktree remain intact; it is not cancelled or considered implemented.
 
 The `core-hardening-v2` task is merged. Core lifecycle finalization and stable
 result serialization are implemented without pulling schema, validation,
