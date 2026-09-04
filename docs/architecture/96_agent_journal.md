@@ -740,3 +740,22 @@ Clarification:
 Result:
 
 - P1-A1 may proceed independently after the new worktree passes preflight
+
+------
+
+## 2026-09-05
+
+### Dedicated P1-A1 Prompt Activated
+
+Clarification:
+
+- the P1-A1 active task now uses the dedicated micro-refactor prompt
+  `agents/p1a1_payload_ownership_agent_prompt.md`
+- the previous broad Phase 1 prompt remains historical/reference material and
+  is no longer the active role prompt for P1-A1
+- no production behavior was changed in this workflow-only commit
+
+Result:
+
+- the authoritative task contract, generated current-task view, and active
+  role prompt now describe the same P1-A1 scope

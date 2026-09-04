@@ -9,7 +9,7 @@
 - Role: `phase1-refactor`
 - Branch: `codex/p1a-payload-ownership`
 - Worktree: `rm_ref_p1a`
-- Prompt: `agents/phase1_refactor_agent_prompt.md`
+- Prompt: `agents/p1a1_payload_ownership_agent_prompt.md`
 
 ## Goal
 

@@ -14,7 +14,7 @@
     "role": "phase1-refactor",
     "branch": "codex/p1a-payload-ownership",
     "worktree": "rm_ref_p1a",
-    "prompt": "agents/phase1_refactor_agent_prompt.md",
+    "prompt": "agents/p1a1_payload_ownership_agent_prompt.md",
     "allowed_paths": [
       "src/rm_ref/core/lifecycle.py",
       "tests/test_core/test_runner.py"
@@ -47,7 +47,7 @@
       "AGENTS.md",
       "agents/README.md",
       "agents/project_status.json",
-      "agents/phase1_refactor_agent_prompt.md",
+      "agents/p1a1_payload_ownership_agent_prompt.md",
       "docs/architecture/97_current_task.md",
       "docs/architecture/98_project_progress_snapshot.md",
       "docs/architecture/99_multi_agent_workflow.md",
