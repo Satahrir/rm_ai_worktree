@@ -126,9 +126,13 @@ def _initialize_packet_context(packet_ctx, packet_cfg):
         deepcopy(rm_ctx.cfg.global_cfg.parameters)
     )
     packet_ctx.runtime["config"].update(deepcopy(packet_cfg.parameters))
-    packet_ctx.runtime["input"]["packet_by_cc"] = deepcopy(
-        packet_cfg.input_pkt_by_cc
-    )
+    packet_by_cc = {}
+    for cell_index, payload in packet_cfg.input_pkt_by_cc.items():
+        packet_by_cc[cell_index] = deepcopy(payload)
+    for cell_cfg in packet_cfg.cells:
+        if cell_cfg.cell_index not in packet_by_cc:
+            packet_by_cc[cell_cfg.cell_index] = []
+    packet_ctx.runtime["input"]["packet_by_cc"] = packet_by_cc
     packet_ctx.runtime["derived"]["active_cell_indexes"] = [
         cell.cell_index for cell in packet_cfg.cells
     ]
@@ -146,9 +150,7 @@ def _initialize_cell_context(cell_ctx, cell_cfg):
     cell_ctx.runtime["config"].update(deepcopy(cell_cfg.parameters))
     cell_ctx.push_input(
         "samples",
-        deepcopy(
-            packet_ctx.packet_cfg.input_pkt_by_cc.get(cell_cfg.cell_index, [])
-        ),
+        packet_ctx.runtime["input"]["packet_by_cc"][cell_cfg.cell_index],
     )
 
 

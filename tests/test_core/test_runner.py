@@ -33,6 +33,21 @@ class FailingAlgorithm(Algorithm):
         raise RuntimeError("model failed")
 
 
+class MutatingInputAlgorithm(Algorithm):
+    def execute_cell(self, cell_ctx):
+        samples = cell_ctx.get_input("samples", [])
+        initial_samples = copy.deepcopy(samples)
+        if cell_ctx.cell_cfg.cell_index == 0:
+            samples.append({"mutated_by": 0})
+
+        packet_by_cc = cell_ctx.packet_ctx.get_input("packet_by_cc")
+        cell_ctx.push_output("initial_samples", initial_samples)
+        cell_ctx.push_output(
+            "packet_samples_after",
+            copy.deepcopy(packet_by_cc.get(cell_ctx.cell_cfg.cell_index)),
+        )
+
+
 def _packet(samples, cell_index=0):
     return PacketConfig(
         parameters={"packet_mode": "test"},
@@ -172,3 +187,55 @@ def test_runtime_output_does_not_mutate_static_config():
     assert packet.cells[0].parameters == original_cell_parameters
     assert packet.input_pkt_by_cc == original_input
     assert not hasattr(packet.cells[0], "output")
+
+
+def test_algorithm_input_mutation_does_not_mutate_caller_or_static_payload():
+    caller_samples = [{"value": 4}]
+    packet = _packet(caller_samples)
+    original_caller_samples = copy.deepcopy(caller_samples)
+    original_static_input = copy.deepcopy(packet.input_pkt_by_cc)
+
+    run_config(TestcaseConfig(packets=[packet]), MutatingInputAlgorithm())
+
+    assert caller_samples == original_caller_samples
+    assert packet.input_pkt_by_cc == original_static_input
+
+
+def test_shared_source_payload_does_not_contaminate_another_cell():
+    shared_samples = [{"value": 1}]
+    packet = PacketConfig(
+        input_pkt_by_cc={0: shared_samples, 1: shared_samples},
+        cells=[CellConfig(cell_index=0), CellConfig(cell_index=1)],
+    )
+
+    result = run_config(
+        TestcaseConfig(packets=[packet]),
+        MutatingInputAlgorithm(),
+    )
+
+    cell_outputs = result.packet_outputs[0].cell_outputs
+    assert cell_outputs[0].output["packet_samples_after"] == [
+        {"value": 1},
+        {"mutated_by": 0},
+    ]
+    assert cell_outputs[1].output["initial_samples"] == [{"value": 1}]
+    assert cell_outputs[1].output["packet_samples_after"] == [{"value": 1}]
+
+
+def test_missing_cell_inputs_are_independent_empty_working_payloads():
+    packet = PacketConfig(
+        cells=[CellConfig(cell_index=0), CellConfig(cell_index=1)],
+    )
+
+    result = run_config(
+        TestcaseConfig(packets=[packet]),
+        MutatingInputAlgorithm(),
+    )
+
+    cell_outputs = result.packet_outputs[0].cell_outputs
+    assert cell_outputs[0].output["initial_samples"] == []
+    assert cell_outputs[0].output["packet_samples_after"] == [
+        {"mutated_by": 0}
+    ]
+    assert cell_outputs[1].output["initial_samples"] == []
+    assert cell_outputs[1].output["packet_samples_after"] == []
