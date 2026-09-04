@@ -31,6 +31,11 @@ REQUIRED_TASK_KEYS = (
     "checks",
 )
 
+REQUIRED_REMOTE_KEYS = (
+    "name",
+    "url",
+)
+
 VALID_TASK_STATUSES = (
     "PLANNED",
     "READY_FOR_WORKTREE",
@@ -107,6 +112,21 @@ def validate_status(status):
             )
         )
 
+    remote = status.get("remote")
+    if remote is not None:
+        if not isinstance(remote, dict):
+            raise WorkflowError("remote must be an object")
+        missing = [key for key in REQUIRED_REMOTE_KEYS if key not in remote]
+        if missing:
+            raise WorkflowError(
+                "remote missing keys: {0}".format(", ".join(missing))
+            )
+        for key in REQUIRED_REMOTE_KEYS:
+            if not isinstance(remote[key], str) or not remote[key].strip():
+                raise WorkflowError(
+                    "remote.{0} must be a non-empty string".format(key)
+                )
+
     return status
 
 
@@ -143,6 +163,20 @@ def render_current_task(status):
     if notes:
         lines.extend(["", "## Notes", ""])
         lines.extend("- {0}".format(note) for note in notes)
+
+    remote = status.get("remote")
+    if remote:
+        lines.extend(
+            [
+                "",
+                "## Remote Sync",
+                "",
+                "- Remote: `{0}`".format(remote["name"]),
+                "- URL: `{0}`".format(remote["url"]),
+                "- Run `python scripts/agent_workflow.py check-sync` before "
+                "an approved push.",
+            ]
+        )
 
     lines.append("")
     return "\n".join(lines)
@@ -348,6 +382,90 @@ def preflight_errors(
     return errors
 
 
+def remote_sync_report(status, repo_root=REPO_ROOT):
+    remote = status.get("remote")
+    if not remote:
+        raise WorkflowError("status file does not define remote sync settings")
+
+    remote_name = remote["name"]
+    configured_url = remote["url"]
+    actual_url = _run_git(["remote", "get-url", remote_name], repo_root)
+    branch = _run_git(["branch", "--show-current"], repo_root)
+    dirty_output = _run_git(["status", "--porcelain"], repo_root)
+    errors = []
+
+    if actual_url != configured_url:
+        errors.append(
+            "remote {0} URL mismatch: expected {1}, found {2}".format(
+                remote_name, configured_url, actual_url
+            )
+        )
+    if not branch:
+        errors.append("cannot sync from detached HEAD")
+    if dirty_output:
+        errors.append("worktree must be clean before remote sync")
+
+    upstream = None
+    behind = None
+    ahead = None
+    if branch:
+        upstream = _run_git(
+            [
+                "for-each-ref",
+                "--format=%(upstream:short)",
+                "refs/heads/{0}".format(branch),
+            ],
+            repo_root,
+        ) or None
+
+    if upstream:
+        expected_upstream = "{0}/{1}".format(remote_name, branch)
+        if upstream != expected_upstream:
+            errors.append(
+                "upstream mismatch: expected {0}, found {1}".format(
+                    expected_upstream, upstream
+                )
+            )
+        counts = _run_git(
+            ["rev-list", "--left-right", "--count", "{0}...HEAD".format(upstream)],
+            repo_root,
+        ).split()
+        if len(counts) != 2:
+            raise WorkflowError(
+                "unexpected ahead/behind output for {0}: {1}".format(
+                    upstream, " ".join(counts)
+                )
+            )
+        behind = int(counts[0])
+        ahead = int(counts[1])
+        if behind:
+            errors.append(
+                "local branch is behind {0} by {1} commit(s)".format(
+                    upstream, behind
+                )
+            )
+
+    return {
+        "remote_name": remote_name,
+        "remote_url": actual_url,
+        "branch": branch,
+        "upstream": upstream,
+        "behind": behind,
+        "ahead": ahead,
+        "errors": errors,
+    }
+
+
+def _print_remote_sync_report(report):
+    print("remote: {0}".format(report["remote_name"]))
+    print("remote_url: {0}".format(report["remote_url"]))
+    print("branch: {0}".format(report["branch"] or "(detached HEAD)"))
+    print("upstream: {0}".format(report["upstream"] or "(not set)"))
+    if report["upstream"]:
+        print("behind: {0}".format(report["behind"]))
+        print("ahead: {0}".format(report["ahead"]))
+
+
 def _print_status(status):
     task = status["active_task"]
     print("project: {0}".format(status["project"]))
@@ -396,6 +514,10 @@ def _build_parser():
 
     subparsers.add_parser(
         "check-scope", help="Check tracked, staged, and untracked changed files."
+    )
+    subparsers.add_parser(
+        "check-sync",
+        help="Check whether the current branch is ready for an approved push.",
     )
     return parser
 
@@ -453,6 +575,21 @@ def main(argv=None):
                     print("[ERROR] out-of-scope change: {0}".format(path))
                 return 1
             print("[OK] all changed files are within the active task scope")
+        elif args.command == "check-sync":
+            report = remote_sync_report(status)
+            _print_remote_sync_report(report)
+            if report["errors"]:
+                for error in report["errors"]:
+                    print("[ERROR] {0}".format(error))
+                return 1
+            if report["upstream"]:
+                print("[OK] branch is ready for an approved git push")
+            else:
+                print(
+                    "[OK] branch is ready for initial push: git push -u {0} {1}".format(
+                        report["remote_name"], report["branch"]
+                    )
+                )
         return 0
     except WorkflowError as exc:
         print("[ERROR] {0}".format(exc))

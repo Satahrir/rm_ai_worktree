@@ -118,6 +118,8 @@ task lifecycle gates
 scope checks for committed, staged, unstaged, and untracked files
 generated current-task documentation
 append-only integration journal
+configured remote identity and read-only pre-push readiness checks
+feature-branch sync after approved commits and main sync after closure
 ```
 
 ## Known Limitations

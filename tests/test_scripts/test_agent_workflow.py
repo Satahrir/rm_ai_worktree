@@ -32,6 +32,10 @@ def make_status():
         "project": "demo",
         "integration_branch": "main",
         "integration_worktree": "demo_main",
+        "remote": {
+            "name": "origin",
+            "url": "https://example.invalid/demo.git",
+        },
         "active_task": {
             "id": "example",
             "status": "READY",
@@ -69,6 +73,16 @@ def test_validate_status_rejects_unknown_status():
     assert "invalid active_task.status 'READY_TO_GO'" in str(exc_info.value)
 
 
+def test_validate_status_rejects_incomplete_remote_settings():
+    status = make_status()
+    del status["remote"]["url"]
+
+    with pytest.raises(agent_workflow.WorkflowError) as exc_info:
+        agent_workflow.validate_status(status)
+
+    assert "remote missing keys: url" in str(exc_info.value)
+
+
 def test_render_current_task_uses_authoritative_assignment():
     rendered = agent_workflow.render_current_task(make_status())
 
@@ -76,6 +90,65 @@ def test_render_current_task_uses_authoritative_assignment():
     assert "- Worktree: `demo_example`" in rendered
     assert "- `utils/`" in rendered
     assert "Generated from `agents/project_status.json`" in rendered
+    assert "- Remote: `origin`" in rendered
+    assert "https://example.invalid/demo.git" in rendered
+
+
+def test_remote_sync_report_accepts_clean_initial_push(monkeypatch):
+    def fake_run_git(args, repo_root=None):
+        outputs = {
+            ("remote", "get-url", "origin"): "https://example.invalid/demo.git",
+            ("branch", "--show-current"): "codex/example",
+            ("status", "--porcelain"): "",
+            (
+                "for-each-ref",
+                "--format=%(upstream:short)",
+                "refs/heads/codex/example",
+            ): "",
+        }
+        if tuple(args) in outputs:
+            return outputs[tuple(args)]
+        raise AssertionError("unexpected git arguments: {0}".format(args))
+
+    monkeypatch.setattr(agent_workflow, "_run_git", fake_run_git)
+
+    report = agent_workflow.remote_sync_report(make_status())
+
+    assert report["branch"] == "codex/example"
+    assert report["upstream"] is None
+    assert report["errors"] == []
+
+
+def test_remote_sync_report_rejects_dirty_or_behind_branch(monkeypatch):
+    def fake_run_git(args, repo_root=None):
+        outputs = {
+            ("remote", "get-url", "origin"): "https://example.invalid/demo.git",
+            ("branch", "--show-current"): "codex/example",
+            ("status", "--porcelain"): " M src/example.py",
+            (
+                "for-each-ref",
+                "--format=%(upstream:short)",
+                "refs/heads/codex/example",
+            ): "origin/codex/example",
+            (
+                "rev-list",
+                "--left-right",
+                "--count",
+                "origin/codex/example...HEAD",
+            ): "2 1",
+        }
+        return outputs[tuple(args)]
+
+    monkeypatch.setattr(agent_workflow, "_run_git", fake_run_git)
+
+    report = agent_workflow.remote_sync_report(make_status())
+
+    assert report["behind"] == 2
+    assert report["ahead"] == 1
+    assert report["errors"] == [
+        "worktree must be clean before remote sync",
+        "local branch is behind origin/codex/example by 2 commit(s)",
+    ]
 
 
 def test_scope_violations_include_unallowed_paths():

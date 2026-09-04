@@ -3,6 +3,10 @@
   "project": "rm_ref",
   "integration_branch": "main",
   "integration_worktree": "rm_ref_main",
+  "remote": {
+    "name": "origin",
+    "url": "https://github.com/Satahrir/rm_ai_worktree.git"
+  },
   "active_task": {
     "id": "p4a-runtime-data-ownership-core-contract-hardening",
     "status": "READY",
