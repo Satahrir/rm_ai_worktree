@@ -207,3 +207,31 @@ def test_resolved_config_converts_to_generic_core_config():
     assert core_config.global_cfg.parameters["run_mode"] == 2
     assert core_config.packets[0].parameters["packet_type"] == 3
     assert core_config.packets[0].cells[0].parameters["cell_gain"] == 5
+
+
+def test_repeated_core_conversion_is_deterministic_and_independent():
+    resolved = ConfigResolver().resolve(
+        UserConfig(
+            case_name="repeatable",
+            algorithm_name="demo",
+            schema_id="demo/v1",
+            packets=[UserPacketConfig(cells=[UserCellConfig()])],
+        ),
+        schema=make_schema(),
+    )
+
+    first = resolved.to_core_config()
+    second = resolved.to_core_config()
+    first.global_cfg.parameters["run_mode"] = 99
+    first.packets[0].parameters["packet_type"] = 99
+    first.packets[0].cells[0].parameters["cell_gain"] = 99
+
+    assert first is not second
+    assert second.global_cfg.parameters["run_mode"] == 2
+    assert second.packets[0].packet_index == 0
+    assert second.packets[0].parameters["packet_type"] == 3
+    assert second.packets[0].cells[0].cell_index == 0
+    assert second.packets[0].cells[0].parameters["cell_gain"] == 5
+    assert resolved.global_values["run_mode"] == 2
+    assert resolved.packets[0].values["packet_type"] == 3
+    assert resolved.packets[0].cells[0].values["cell_gain"] == 5

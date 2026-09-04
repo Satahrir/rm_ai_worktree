@@ -126,9 +126,9 @@ def _initialize_packet_context(packet_ctx, packet_cfg):
         deepcopy(rm_ctx.cfg.global_cfg.parameters)
     )
     packet_ctx.runtime["config"].update(deepcopy(packet_cfg.parameters))
-    packet_ctx.runtime["input"]["packet_by_cc"] = deepcopy(
-        packet_cfg.input_pkt_by_cc
-    )
+    # Packet runtime observes the validated config-owned mapping. Mutable
+    # algorithm isolation is applied once when each CellContext is prepared.
+    packet_ctx.runtime["input"]["packet_by_cc"] = packet_cfg.input_pkt_by_cc
     packet_ctx.runtime["derived"]["active_cell_indexes"] = [
         cell.cell_index for cell in packet_cfg.cells
     ]

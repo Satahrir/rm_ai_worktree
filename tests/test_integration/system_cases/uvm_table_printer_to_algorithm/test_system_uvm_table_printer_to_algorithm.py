@@ -44,7 +44,7 @@ class ParameterCaptureAlgorithm(Algorithm):
         self.calls = []
 
     def execute_cell(self, cell_ctx):
-        parameters = deepcopy(cell_ctx.runtime["config"])
+        parameters = cell_ctx.get_config_snapshot()
         self.calls.append(
             {
                 "packet_index": cell_ctx.packet_ctx.packet_cfg.packet_index,

@@ -19,6 +19,30 @@ def _copy_list(value, name):
     return list(value)
 
 
+def _normalized_cells(cells, packet_index):
+    normalized = []
+    seen = set()
+    changed = False
+    for position, cell in enumerate(cells):
+        if not isinstance(cell, CellConfig):
+            raise ConfigError(
+                "cells[{0}] must be CellConfig, got {1!r}".format(position, cell)
+            )
+        if cell.cell_index is None:
+            # Normalization owns the replacement, not the caller's object.
+            cell = CellConfig(cell_index=position, parameters=cell.parameters)
+            changed = True
+        if cell.cell_index in seen:
+            raise DuplicateIndexError(
+                "duplicate cell_index {0!r} in packet {1!r}".format(
+                    cell.cell_index, packet_index
+                )
+            )
+        seen.add(cell.cell_index)
+        normalized.append(cell)
+    return normalized, changed
+
+
 class GlobalConfig(object):
     def __init__(self, parameters=None):
         self.parameters = _copy_mapping(parameters, "global parameters")
@@ -45,21 +69,7 @@ class PacketConfig(object):
         self.normalize_cells()
 
     def normalize_cells(self):
-        seen = set()
-        for position, cell in enumerate(self.cells):
-            if not isinstance(cell, CellConfig):
-                raise ConfigError(
-                    "cells[{0}] must be CellConfig, got {1!r}".format(position, cell)
-                )
-            if cell.cell_index is None:
-                cell.cell_index = position
-            if cell.cell_index in seen:
-                raise DuplicateIndexError(
-                    "duplicate cell_index {0!r} in packet {1!r}".format(
-                        cell.cell_index, self.packet_index
-                    )
-                )
-            seen.add(cell.cell_index)
+        self.cells, _ = _normalized_cells(self.cells, self.packet_index)
         return self
 
 
@@ -79,6 +89,7 @@ class TestcaseConfig(object):
         self.normalize()
 
     def normalize(self):
+        normalized = []
         seen = set()
         for position, packet in enumerate(self.packets):
             if not isinstance(packet, PacketConfig):
@@ -87,12 +98,26 @@ class TestcaseConfig(object):
                         position, packet
                     )
                 )
-            if packet.packet_index is None:
-                packet.packet_index = position
-            if packet.packet_index in seen:
-                raise DuplicateIndexError(
-                    "duplicate packet_index {0!r}".format(packet.packet_index)
+            packet_index = packet.packet_index
+            if packet_index is None:
+                packet_index = position
+            normalized_cells, cells_changed = _normalized_cells(
+                packet.cells, packet_index
+            )
+            if packet.packet_index is None or cells_changed:
+                # Build an owned normalized packet instead of changing the
+                # PacketConfig supplied by the caller.
+                packet = PacketConfig(
+                    packet_index=packet_index,
+                    parameters=packet.parameters,
+                    input_pkt_by_cc=packet.input_pkt_by_cc,
+                    cells=normalized_cells,
                 )
-            seen.add(packet.packet_index)
-            packet.normalize_cells()
+            if packet_index in seen:
+                raise DuplicateIndexError(
+                    "duplicate packet_index {0!r}".format(packet_index)
+                )
+            seen.add(packet_index)
+            normalized.append(packet)
+        self.packets = normalized
         return self

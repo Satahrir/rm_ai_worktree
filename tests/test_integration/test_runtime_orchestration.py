@@ -116,6 +116,21 @@ class MutatingAlgorithm(Algorithm):
         cell_ctx.push_output("samples", samples)
 
 
+class OwnershipRecordingAlgorithm(Algorithm):
+    def __init__(self):
+        self.inputs_before_mutation = []
+
+    def execute_cell(self, cell_ctx):
+        samples = cell_ctx.get_input("samples", [])
+        self.inputs_before_mutation.append(deepcopy(samples))
+        marker = (
+            cell_ctx.packet_ctx.packet_cfg.packet_index,
+            cell_ctx.cell_cfg.cell_index,
+        )
+        samples.append(marker)
+        cell_ctx.push_output("samples", samples)
+
+
 class ReportedErrorAlgorithm(Algorithm):
     def execute_cell(self, cell_ctx):
         cell_ctx.error("BAD_PAYLOAD", "payload was rejected")
@@ -266,6 +281,18 @@ def test_missing_payload_entries_become_empty_samples():
     ] == 0
 
 
+def test_runtime_payload_injection_retains_validated_cell_references():
+    resolved = runtime_runner.ConfigResolver().resolve(
+        make_user_config(), schema=make_schema()
+    )
+    core_config = resolved.to_core_config()
+    samples = [{"sample": 1}]
+
+    runtime_runner._inject_payload(core_config, {2: {7: samples}})
+
+    assert core_config.packets[0].input_pkt_by_cc[7] is samples
+
+
 def test_caller_payload_is_not_mutated():
     payload = {2: {7: ["original"]}}
     original = deepcopy(payload)
@@ -282,6 +309,48 @@ def test_caller_payload_is_not_mutated():
     assert result.run_result.packet_outputs[0].cell_outputs[0].output[
         "samples"
     ] == ["original", "changed"]
+
+
+def test_shared_payload_is_isolated_across_packets_and_cells():
+    user_config = UserConfig.from_dict(
+        {
+            "case_name": "ownership",
+            "algorithm_name": "ownership",
+            "schema_id": "runtime/v1",
+            "packets": [
+                {
+                    "packet_index": 2,
+                    "values": {"packet_kind": "DATA"},
+                    "cells": [{"cell_index": 7}, {"cell_index": 8}],
+                },
+                {
+                    "packet_index": 3,
+                    "values": {"packet_kind": "CTRL"},
+                    "cells": [{"cell_index": 9}],
+                },
+            ],
+        }
+    )
+    shared = [{"sample": 1}]
+    payload = {2: {7: shared, 8: shared}, 3: {9: shared}}
+    original = deepcopy(payload)
+    algorithm = OwnershipRecordingAlgorithm()
+
+    result = run_case(user_config, make_schema(), algorithm, payload)
+
+    assert result.status == PASS
+    assert algorithm.inputs_before_mutation == [shared, shared, shared]
+    assert payload == original
+    outputs = [
+        cell_output.output["samples"]
+        for packet_output in result.run_result.packet_outputs
+        for cell_output in packet_output.cell_outputs
+    ]
+    assert outputs == [
+        shared + [(2, 7)],
+        shared + [(2, 8)],
+        shared + [(3, 9)],
+    ]
 
 
 def test_algorithm_reported_error_becomes_execution_error():

@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from rm_ref.core.diagnostic import (
     DEBUG,
     ERROR as DIAGNOSTIC_ERROR,
@@ -124,6 +126,11 @@ class _RuntimeContext(object):
 
     def get_config(self, key, default=None):
         return self.get_runtime("config", key, default)
+
+    def get_config_snapshot(self):
+        # Algorithms that need the complete view receive detached data rather
+        # than the framework's mutable runtime representation.
+        return deepcopy(self.runtime["config"])
 
 
 class RMContext(_RuntimeContext):

@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 from rm_ref.config import ConfigResolutionError, ConfigResolver, UserConfig
 from rm_ref.core import Algorithm, run_config
 from rm_ref.schema import SchemaDefinition
@@ -77,8 +75,10 @@ def _inject_payload(core_config, payload_by_packet):
         cell_mapping = payload_by_packet.get(packet.packet_index, {})
         packet.input_pkt_by_cc = {}
         for cell in packet.cells:
-            packet.input_pkt_by_cc[cell.cell_index] = deepcopy(
-                cell_mapping.get(cell.cell_index, [])
+            # Runtime retains the caller's validated payload by reference.
+            # Core creates the one algorithm-owned copy at CellContext setup.
+            packet.input_pkt_by_cc[cell.cell_index] = cell_mapping.get(
+                cell.cell_index, []
             )
 
 
