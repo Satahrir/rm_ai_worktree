@@ -58,3 +58,9 @@ Perform a behavior-preserving Phase 1 refactor of payload ownership, static conf
 - Priority is payload ownership, then static config mutation, then the CellContext public API.
 - Task p3b-packet-value-codec-v1 is retained as an approved lower-priority follow-up and must not be implemented in this task.
 - Keep Python 3.6.3 compatibility and add no third-party runtime dependencies.
+
+## Remote Sync
+
+- Remote: `origin`
+- URL: `https://github.com/Satahrir/rm_ai_worktree.git`
+- Run `python scripts/agent_workflow.py check-sync` before an approved push.

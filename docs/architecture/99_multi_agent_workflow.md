@@ -2,12 +2,14 @@
 
 ## 1. Goals
 
-The workflow prevents four common failures:
+The workflow prevents five common failures:
 
 1. An agent starts on the wrong branch or worktree.
 2. Multiple files claim different active tasks.
 3. An agent modifies files outside its assigned scope.
 4. Untracked files are omitted from review.
+5. Approved local commits are left unsynchronized or unreviewed changes are
+   pushed prematurely.
 
 ## 2. Ownership Model
 
@@ -25,6 +27,7 @@ rm_ref_tests       codex/tests
 rm_ref_review      codex/review
 rm_ref_uvm_parser  codex/uvm-parser
 rm_ref_uvm_json    codex/uvm-json
+rm_ref_phase1      codex/phase1-runtime-contracts
 ```
 
 Do not run multiple agents in one worktree. Do not perform feature
@@ -50,6 +53,7 @@ This file owns:
 - allowed and forbidden paths
 - required startup files
 - required checks
+- configured Git remote name and URL
 
 The following files have narrower roles:
 
@@ -164,6 +168,20 @@ The feature agent:
 
 This avoids conflicts when agents run concurrently.
 
+An approved feature commit is then synchronized as a separate stage:
+
+```powershell
+git fetch origin
+python scripts/agent_workflow.py check-sync
+git push -u origin <feature-branch>  # first push only
+python scripts/agent_workflow.py check-sync
+```
+
+The first check must see a clean worktree, the configured remote URL, and no
+known remote commits that are missing locally. The final check should report
+zero commits ahead. `check-sync` is deliberately read-only and does not fetch,
+commit, merge, or push.
+
 ## 8. Integration
 
 The integration coordinator reviews:
@@ -185,6 +203,20 @@ After review or merge, the coordinator:
 4. Commits the JSON, generated view, and journal together.
 5. Audits the maintained workflow README, progress snapshot, and affected
    interface or architecture documents for stale status claims.
+
+After the merge regression and workflow closure commit pass, the coordinator
+synchronizes integration:
+
+```powershell
+git fetch origin
+python scripts/agent_workflow.py check-sync
+git push origin main
+python scripts/agent_workflow.py check-sync
+```
+
+Do not push `main` before the feature review and closure are complete. Do not
+force-push shared branches. If `check-sync` reports the branch is behind, stop
+and integrate the remote changes explicitly before pushing.
 
 ## 9. Status Values
 
@@ -224,6 +256,7 @@ python scripts/agent_workflow.py validate
 python scripts/agent_workflow.py render
 python scripts/agent_workflow.py preflight
 python scripts/agent_workflow.py check-scope
+python scripts/agent_workflow.py check-sync
 git worktree list
 git status --short
 python -m pytest -q
@@ -240,3 +273,8 @@ creating the feature worktree.
 
 If scope check reports an unrelated existing change, do not revert it. Move
 the feature to a clean worktree or ask the coordinator to resolve ownership.
+
+If remote sync reports a dirty worktree, finish or preserve the local changes
+before retrying. If the configured URL differs from Git, resolve that mismatch
+without replacing history. If the branch is behind its upstream, fetch and
+review the remote changes; never use force push as the default recovery.

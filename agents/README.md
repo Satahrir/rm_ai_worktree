@@ -87,6 +87,24 @@ The feature agent reports results but does not edit shared status or journal
 files. The integration coordinator owns status transitions and journal
 updates.
 
+## Remote Sync
+
+The configured remote is recorded in `agents/project_status.json`. Remote sync
+is explicit and occurs only for approved commits; the workflow never creates a
+commit or pushes a dirty worktree automatically.
+
+For a feature branch:
+
+1. Complete focused tests and `check-scope`.
+2. Obtain approval, commit the reviewed feature changes, and fetch `origin`.
+3. Run `python scripts/agent_workflow.py check-sync`.
+4. For the first push, use the command reported by `check-sync`; later pushes
+   may use `git push`.
+5. Verify `check-sync` reports zero commits ahead.
+
+For integration, push `main` only after merge tests and the status/journal
+closure commit are complete. Do not force-push shared branches.
+
 ## Status Update
 
 The integration coordinator:

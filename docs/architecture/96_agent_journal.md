@@ -697,3 +697,25 @@ Completed:
 Result:
 
 - Phase 1 implementation may begin after successful feature preflight
+
+------
+
+## 2026-09-04
+
+### Remote Synchronization Added To Workflow
+
+Decision:
+
+- preserved the current Phase 1 feature worktree and its uncommitted changes
+- recorded `origin` and the GitHub repository URL in authoritative status
+- added a read-only `check-sync` gate for remote URL, clean worktree,
+  upstream, and ahead/behind verification
+- required approved feature commits to be pushed before remote review and
+  required `main` to be pushed only after merge regression and workflow
+  closure
+- kept commit and push operations explicit; no automatic or force push was
+  introduced
+
+Result:
+
+- future approved local commits have a defined, testable path to GitHub

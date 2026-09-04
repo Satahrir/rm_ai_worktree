@@ -398,6 +398,20 @@ python scripts/agent_workflow.py render
 
 and appends a concise entry to `docs/architecture/96_agent_journal.md`.
 
+Remote synchronization is a separate, explicit finish stage. Never push a
+dirty worktree or unapproved commit. After the user approves a feature commit,
+fetch the configured remote, run:
+
+```powershell
+python scripts/agent_workflow.py check-sync
+```
+
+and push the feature branch with upstream tracking. After review, merge, full
+regression, and workflow closure, the integration coordinator runs the same
+check and pushes `main`. Verify the local branch is no longer ahead after each
+push. A push must not replace testing, scope checking, review, or status
+closure.
+
 When a milestone or workflow rule changes, the integration coordinator must
 also audit and refresh the applicable maintained documents:
 
