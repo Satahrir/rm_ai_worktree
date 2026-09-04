@@ -719,3 +719,24 @@ Decision:
 Result:
 
 - future approved local commits have a defined, testable path to GitHub
+
+------
+
+## 2026-09-05
+
+### Phase 1 Rebased To P1-A1 Micro-Refactor
+
+Clarification:
+
+- preserved `codex/phase1-runtime-contracts` and broad implementation commit
+  `a9281dc` as a historical Phase 1 experiment without modification or revert
+- replaced the broad active assignment with focused task
+  `p1a1-payload-working-copy-ownership`
+- restricted feature implementation to `src/rm_ref/core/lifecycle.py` and
+  `tests/test_core/test_runner.py`
+- assigned new branch `codex/p1a-payload-ownership` and worktree `rm_ref_p1a`
+- retained `b255977` as the RM production-code baseline
+
+Result:
+
+- P1-A1 may proceed independently after the new worktree passes preflight

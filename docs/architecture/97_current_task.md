@@ -4,28 +4,28 @@
 
 ## Assignment
 
-- Task: `p4a-runtime-data-ownership-core-contract-hardening`
+- Task: `p1a1-payload-working-copy-ownership`
 - Status: `READY`
 - Role: `phase1-refactor`
-- Branch: `codex/phase1-runtime-contracts`
-- Worktree: `rm_ref_phase1`
+- Branch: `codex/p1a-payload-ownership`
+- Worktree: `rm_ref_p1a`
 - Prompt: `agents/phase1_refactor_agent_prompt.md`
 
 ## Goal
 
-Perform a behavior-preserving Phase 1 refactor of payload ownership, static config construction, and the CellContext public contract.
+Behavior-preserving refactor that makes PacketContext own independently copied per-cell runtime payloads and makes CellContext reference its PacketContext working payload.
 
 ## Allowed Paths
 
-- `src/rm_ref/core/`
-- `src/rm_ref/config/`
-- `src/rm_ref/runtime/`
-- `tests/test_core/`
-- `tests/test_config/`
-- `tests/test_integration/`
+- `src/rm_ref/core/lifecycle.py`
+- `tests/test_core/test_runner.py`
 
 ## Forbidden Paths
 
+- `src/rm_ref/core/config.py`
+- `src/rm_ref/core/context.py`
+- `src/rm_ref/runtime/`
+- `src/rm_ref/config/`
 - `src/rm_ref/schema/`
 - `src/rm_ref/validator/`
 - `src/rm_ref/packer/`
@@ -37,6 +37,8 @@ Perform a behavior-preserving Phase 1 refactor of payload ownership, static conf
 - `tests/test_packer/`
 - `tests/test_packet/`
 - `tests/test_algorithms/`
+- `tests/test_config/`
+- `tests/test_integration/`
 - `agents/`
 - `scripts/`
 - `docs/`
@@ -45,6 +47,7 @@ Perform a behavior-preserving Phase 1 refactor of payload ownership, static conf
 
 ## Required Checks
 
+- `python -m pytest -q tests/test_core/test_runner.py`
 - `python -m pytest -q tests/test_core tests/test_config tests/test_integration`
 - `python -m pytest -q`
 - `$env:PYTHONPATH='src'; D:\ProgramData\miniconda3\envs\py3p6\python.exe -m pytest -q tests/test_core tests/test_config tests/test_integration`
@@ -53,10 +56,9 @@ Perform a behavior-preserving Phase 1 refactor of payload ownership, static conf
 
 ## Notes
 
-- The full-test baseline on main is 197 passed under the default Python environment.
-- This is a behavior-preserving refactor; keep the existing vertical flow and public contracts stable.
-- Priority is payload ownership, then static config mutation, then the CellContext public API.
-- Task p3b-packet-value-codec-v1 is retained as an approved lower-priority follow-up and must not be implemented in this task.
+- The RM code baseline is main commit b255977.
+- The broad Phase 1 experiment remains preserved on codex/phase1-runtime-contracts at a9281dc and must not be modified, reverted, or extended.
+- This task is limited to P1-A1 payload working-copy ownership; do not implement static config or CellContext public API refactors.
 - Keep Python 3.6.3 compatibility and add no third-party runtime dependencies.
 
 ## Remote Sync
